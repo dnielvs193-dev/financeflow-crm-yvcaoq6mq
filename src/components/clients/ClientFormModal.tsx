@@ -64,6 +64,7 @@ export function ClientFormModal({
   useEffect(() => {
     if (client && open) {
       setFormData({
+        ...defaultForm,
         name: client.name || '',
         phone: client.phone || '',
         service: client.service || '',
@@ -77,8 +78,6 @@ export function ClientFormModal({
         password: client.password || '',
         mac: client.mac || '',
         dkey: client.dkey || '',
-        obs1: client.obs1 || '',
-        obs2: client.obs2 || '',
       })
     } else if (!open) {
       setFormData(defaultForm)
@@ -134,7 +133,7 @@ export function ClientFormModal({
 
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{client ? 'Editar Cliente' : 'Novo Cadastro de Cliente'}</DialogTitle>
+          <DialogTitle>{client ? 'Editar Cliente' : 'Novo Cadastro'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -209,9 +208,8 @@ export function ClientFormModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Automático">Automático (por data)</SelectItem>
-                  <SelectItem value="Devedor">Devedor (Fixo)</SelectItem>
-                  <SelectItem value="Teste">Teste</SelectItem>
-                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                  <SelectItem value="Devedor">Devedor (Manual)</SelectItem>
+                  <SelectItem value="Vencido +30d">Vencido +30d (Manual)</SelectItem>
                 </SelectContent>
               </Select>
               <Input
@@ -219,20 +217,6 @@ export function ClientFormModal({
                 type="date"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                className="mt-2"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Dispositivo</Label>
-              <Input
-                value={formData.mac}
-                onChange={(e) => setFormData({ ...formData, mac: e.target.value })}
-                placeholder="MAC Address"
-              />
-              <Input
-                value={formData.dkey}
-                onChange={(e) => setFormData({ ...formData, dkey: e.target.value })}
-                placeholder="D-Key"
                 className="mt-2"
               />
             </div>
@@ -245,7 +229,7 @@ export function ClientFormModal({
                   step="0.01"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  placeholder="Preço Venda (R$)"
+                  placeholder="Venda (R$)"
                 />
                 <Input
                   required
@@ -254,35 +238,6 @@ export function ClientFormModal({
                   value={formData.cost}
                   onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
                   placeholder="Custo (R$)"
-                />
-              </div>
-              <Select
-                value={formData.city}
-                onValueChange={(v) => setFormData({ ...formData, city: v })}
-              >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Cidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="São Paulo">São Paulo</SelectItem>
-                  <SelectItem value="Rio de Janeiro">Rio de Janeiro</SelectItem>
-                  <SelectItem value="Belo Horizonte">Belo Horizonte</SelectItem>
-                  <SelectItem value="Outra">Outra</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 col-span-1 md:col-span-2">
-              <Label>Observações</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={formData.obs1}
-                  onChange={(e) => setFormData({ ...formData, obs1: e.target.value })}
-                  placeholder="Observação 1"
-                />
-                <Input
-                  value={formData.obs2}
-                  onChange={(e) => setFormData({ ...formData, obs2: e.target.value })}
-                  placeholder="Observação 2"
                 />
               </div>
             </div>

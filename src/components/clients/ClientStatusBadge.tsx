@@ -13,11 +13,9 @@ export function ClientStatusBadge({
 
   const styles: Record<string, string> = {
     Ativo: 'bg-green-500/15 text-green-600 hover:bg-green-500/25',
-    'Vence Hoje': 'bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/25',
     Vencido: 'bg-red-500/15 text-red-600 hover:bg-red-500/25',
     Devedor: 'bg-orange-500/15 text-orange-600 hover:bg-orange-500/25',
-    Teste: 'bg-purple-500/15 text-purple-600 hover:bg-purple-500/25',
-    Cancelado: 'bg-gray-500/15 text-gray-600 hover:bg-gray-500/25',
+    'Vencido +30d': 'bg-purple-500/15 text-purple-600 hover:bg-purple-500/25',
   }
 
   return (

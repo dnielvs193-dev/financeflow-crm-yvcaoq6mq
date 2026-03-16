@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
 import { getClientStatus } from '@/lib/formatters'
 
-export type ClientStatus = 'Devedor' | 'Teste' | 'Cancelado' | null
+export type ClientStatus = 'Devedor' | 'Vencido +30d' | null
 
 export type Client = {
   id: string
@@ -9,6 +9,7 @@ export type Client = {
   service: string
   phone: string
   expiryDate: string
+  lastExpiryDate?: string
   price: number
   cost: number
   status: ClientStatus
@@ -33,6 +34,8 @@ export type Transaction = {
   bankId: string
   description: string
   clientId?: string
+  service?: string
+  quantity?: number
 }
 
 export type Bank = {
@@ -56,11 +59,8 @@ type MainStoreContextType = {
   addClient: (client: Omit<Client, 'id'>) => void
   updateClient: (id: string, updates: Partial<Client>) => void
   deleteClient: (id: string) => void
-  restoreClient: (id: string) => void
-  hardDeleteClient: (id: string) => void
   renewClient: (id: string, days: number) => void
   addTransaction: (t: Omit<Transaction, 'id'>) => void
-  addBank: (b: Omit<Bank, 'id'>) => void
   importClients: (newClients: Omit<Client, 'id'>[]) => void
 }
 
@@ -122,7 +122,9 @@ const mockTransactions: Transaction[] = [
     cost: 10,
     profit: 25,
     bankId: 'b1',
-    description: 'Renovação: Ana Costa - IPTV Premium',
+    description: 'Renovação - Ana Costa - IPTV Premium',
+    service: 'IPTV Premium',
+    quantity: 1,
   },
 ]
 
@@ -142,28 +144,31 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     setClients(clients.map((c) => (c.id === id ? { ...c, ...updates } : c)))
 
   const deleteClient = (id: string) => updateClient(id, { deleted: true })
-  const restoreClient = (id: string) => updateClient(id, { deleted: false })
-  const hardDeleteClient = (id: string) => setClients(clients.filter((c) => c.id !== id))
 
   const addTransaction = (t: Omit<Transaction, 'id'>) => {
     setTransactions([{ ...t, id: Math.random().toString(36).substr(2, 9) }, ...transactions])
     setBanks(banks.map((b) => (b.id === t.bankId ? { ...b, balance: b.balance + t.profit } : b)))
   }
 
-  const addBank = (b: Omit<Bank, 'id'>) =>
-    setBanks([...banks, { ...b, id: Math.random().toString(36).substr(2, 9) }])
-
   const renewClient = (id: string, days: number) => {
     const client = clients.find((c) => c.id === id)
     if (!client) return
 
-    const currentStatus = getClientStatus(client.expiryDate, client.status)
+    const isManualAdjust = [-1, 1].includes(days)
     let baseDate = new Date(client.expiryDate)
 
-    if (currentStatus === 'Vencido') {
-      baseDate = new Date()
+    if (isManualAdjust) {
+      baseDate.setDate(baseDate.getDate() + days)
+      updateClient(id, { expiryDate: baseDate.toISOString() })
+      return
     }
 
+    const currentStatus = getClientStatus(client.expiryDate, client.status)
+    const lastDate = client.expiryDate
+
+    if (currentStatus === 'Vencido' || currentStatus === 'Vencido +30d') {
+      baseDate = new Date()
+    }
     baseDate.setDate(baseDate.getDate() + days)
 
     addTransaction({
@@ -173,12 +178,18 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       cost: client.cost,
       profit: client.price - client.cost,
       bankId: banks[0]?.id || '',
-      description: `Renovação: ${client.name} - ${client.service}`,
+      description: `Renovação - ${client.name} - ${client.service}`,
       clientId: client.id,
+      service: client.service,
+      quantity: 1,
     })
 
     const newStatus = client.status === 'Devedor' ? 'Devedor' : null
-    updateClient(id, { expiryDate: baseDate.toISOString(), status: newStatus })
+    updateClient(id, {
+      expiryDate: baseDate.toISOString(),
+      lastExpiryDate: lastDate,
+      status: newStatus,
+    })
   }
 
   const importClients = (newClients: Omit<Client, 'id'>[]) => {
@@ -231,11 +242,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         addClient,
         updateClient,
         deleteClient,
-        restoreClient,
-        hardDeleteClient,
         renewClient,
         addTransaction,
-        addBank,
         importClients,
       }}
     >

@@ -16,8 +16,7 @@ export const formatDate = (dateString: string) => {
 
 export const getClientStatus = (expiryDate: string, manualStatus?: string | null) => {
   if (manualStatus === 'Devedor') return 'Devedor'
-  if (manualStatus === 'Teste') return 'Teste'
-  if (manualStatus === 'Cancelado') return 'Cancelado'
+  if (manualStatus === 'Vencido +30d') return 'Vencido +30d'
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -25,10 +24,8 @@ export const getClientStatus = (expiryDate: string, manualStatus?: string | null
   const exp = new Date(expiryDate)
   exp.setHours(0, 0, 0, 0)
 
-  const diffTime = exp.getTime() - today.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) return 'Vencido'
-  if (diffDays === 0) return 'Vence Hoje'
   return 'Ativo'
 }

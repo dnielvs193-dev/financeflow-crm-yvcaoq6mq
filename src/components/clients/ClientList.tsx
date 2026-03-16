@@ -12,12 +12,22 @@ import { Card, CardContent } from '@/components/ui/card'
 import useMainStore, { Client } from '@/stores/useMainStore'
 import { ClientStatusBadge } from './ClientStatusBadge'
 import { formatDate, formatCurrency } from '@/lib/formatters'
-import { MoreVertical, Phone, Trash, Edit } from 'lucide-react'
+import {
+  MoreVertical,
+  Phone,
+  Trash,
+  Edit,
+  MessageSquare,
+  Tag,
+  LifeBuoy,
+  History,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ClientFormModal } from './ClientFormModal'
@@ -28,13 +38,23 @@ export function ClientList() {
 
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [sortCol, setSortCol] = useState<'name' | 'service' | 'expiryDate'>('expiryDate')
-  const [sortDesc, setSortDesc] = useState(false)
+  const [sortDesc, setSortDesc] = useState(false) // Default ascending for expiry (critical first)
 
   const handleRenew = (id: string, days: number) => {
     renewClient(id, days)
+    const isManual = [-1, 1].includes(days)
     toast({
-      title: 'Renovado com sucesso!',
-      description: `Adicionado ${days > 0 ? '+' : ''}${days} dias ao cliente.`,
+      title: isManual ? 'Data ajustada' : 'Renovação concluída',
+      description: isManual
+        ? `Ajuste de ${days > 0 ? '+' : ''}${days}d aplicado.`
+        : `Adicionado +${days} dias e lançamento gerado no Extrato.`,
+    })
+  }
+
+  const placeholderAction = (action: string) => {
+    toast({
+      title: 'Ação Registrada',
+      description: `Módulo "${action}" em desenvolvimento para futuras integrações.`,
     })
   }
 
@@ -42,7 +62,7 @@ export function ClientList() {
     if (sortCol === col) setSortDesc(!sortDesc)
     else {
       setSortCol(col)
-      setSortDesc(false)
+      setSortDesc(col === 'name' || col === 'service' ? false : false)
     }
   }
 
@@ -89,7 +109,7 @@ export function ClientList() {
                 Status / Venc. {sortCol === 'expiryDate' && (sortDesc ? '↓' : '↑')}
               </TableHead>
               <TableHead>Financeiro</TableHead>
-              <TableHead className="w-[220px]">Renovação Rápida</TableHead>
+              <TableHead className="w-[240px]">Gestão de Vencimento</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -114,29 +134,47 @@ export function ClientList() {
                 </TableCell>
                 <TableCell>
                   <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
-                  <div className="text-xs text-muted-foreground mt-1 font-medium">
-                    {formatDate(client.expiryDate)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium text-primary">{formatCurrency(client.price)}</div>
-                  {client.city && (
-                    <div className="text-xs text-muted-foreground">{client.city}</div>
+                  <div className="text-xs font-medium mt-1">{formatDate(client.expiryDate)}</div>
+                  {client.lastExpiryDate && (
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <History className="h-3 w-3" /> Antigo: {formatDate(client.lastExpiryDate)}
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {[-1, 1, 15, 30, 31].map((d) => (
-                      <Button
-                        key={d}
-                        variant="outline"
-                        size="sm"
-                        className="h-6 text-[10px] px-1.5"
-                        onClick={() => handleRenew(client.id, d)}
-                      >
-                        {d > 0 ? `+${d}d` : `${d}d`}
-                      </Button>
-                    ))}
+                  <div className="font-medium text-primary">{formatCurrency(client.price)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Custo: {formatCurrency(client.cost)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex gap-1">
+                      {[-1, 1].map((d) => (
+                        <Button
+                          key={d}
+                          variant="secondary"
+                          size="sm"
+                          className="h-6 text-[10px] px-1.5 flex-1"
+                          onClick={() => handleRenew(client.id, d)}
+                        >
+                          {d > 0 ? `+${d}d` : `${d}d`}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      {[15, 30, 31].map((d) => (
+                        <Button
+                          key={d}
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] px-1.5 flex-1 border-primary/20 text-primary hover:bg-primary/10"
+                          onClick={() => handleRenew(client.id, d)}
+                        >
+                          +{d}d
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -146,10 +184,21 @@ export function ClientList() {
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem onClick={() => setEditingClient(client)}>
-                        <Edit className="mr-2 h-4 w-4" /> Editar
+                        <Edit className="mr-2 h-4 w-4" /> Editar Cliente
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => placeholderAction('Feed Whatsapp')}>
+                        <MessageSquare className="mr-2 h-4 w-4 text-blue-500" /> Disparar Feed
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => placeholderAction('Promoção')}>
+                        <Tag className="mr-2 h-4 w-4 text-orange-500" /> Enviar Promoção
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => placeholderAction('Resgate de Cliente')}>
+                        <LifeBuoy className="mr-2 h-4 w-4 text-green-500" /> Tentar Resgate
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => deleteClient(client.id)}
                         className="text-destructive"
@@ -186,7 +235,9 @@ export function ClientList() {
               <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-muted/30 p-2 rounded">
                 <div>
                   <span className="text-muted-foreground text-xs">Vencimento</span>
-                  <div className="font-medium">{formatDate(client.expiryDate)}</div>
+                  <div className="font-medium flex items-center gap-1">
+                    {formatDate(client.expiryDate)}
+                  </div>
                 </div>
                 <div>
                   <span className="text-muted-foreground text-xs">Preço</span>
@@ -194,15 +245,15 @@ export function ClientList() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
-                {[15, 30, 31].map((d) => (
+                {[15, 30].map((d) => (
                   <Button
                     key={d}
                     variant="outline"
                     size="sm"
-                    className="flex-1 h-8 text-xs bg-primary/5 hover:bg-primary/10"
+                    className="flex-1 h-8 text-xs bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
                     onClick={() => handleRenew(client.id, d)}
                   >
-                    +{d}d
+                    Renovar +{d}d
                   </Button>
                 ))}
               </div>
@@ -215,12 +266,11 @@ export function ClientList() {
                   <Edit className="h-3 w-3 mr-2" /> Editar
                 </Button>
                 <Button
-                  variant="ghost"
-                  className="text-destructive border"
-                  size="icon"
-                  onClick={() => deleteClient(client.id)}
+                  variant="outline"
+                  className="flex-1 text-xs text-blue-500 border-blue-500/20 hover:bg-blue-500/10"
+                  onClick={() => placeholderAction('Ação Rápida')}
                 >
-                  <Trash className="h-4 w-4" />
+                  <MessageSquare className="h-3 w-3 mr-2" /> Ações
                 </Button>
               </div>
             </CardContent>

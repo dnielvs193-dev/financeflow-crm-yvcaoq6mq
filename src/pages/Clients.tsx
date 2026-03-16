@@ -54,11 +54,9 @@ export default function Clients() {
           <SelectContent>
             <SelectItem value="all">Todos os Status</SelectItem>
             <SelectItem value="Ativo">Ativo</SelectItem>
-            <SelectItem value="Vence Hoje">Vence Hoje</SelectItem>
             <SelectItem value="Vencido">Vencido</SelectItem>
             <SelectItem value="Devedor">Devedor</SelectItem>
-            <SelectItem value="Teste">Teste</SelectItem>
-            <SelectItem value="Cancelado">Cancelado</SelectItem>
+            <SelectItem value="Vencido +30d">Vencido +30d</SelectItem>
           </SelectContent>
         </Select>
         <Select value={serviceFilter} onValueChange={setServiceFilter}>

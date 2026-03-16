@@ -2,14 +2,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react'
 
 export function SummaryCards({ transactions }: { transactions: any[] }) {
+  const commercialTypes = ['Clientes', 'Revendas']
+
   const totalRevenue = transactions.reduce(
-    (acc, curr) => acc + (curr.type === 'Clientes' || curr.type === 'Revendas' ? curr.entry : 0),
+    (acc, curr) => acc + (commercialTypes.includes(curr.type) ? curr.entry : 0),
     0,
   )
-  const totalCost = transactions.reduce((acc, curr) => acc + curr.cost, 0)
+
+  const totalCost = transactions.reduce(
+    (acc, curr) => acc + (commercialTypes.includes(curr.type) ? curr.cost : 0),
+    0,
+  )
+
   const totalProfit = totalRevenue - totalCost
+
   const totalExpenses = transactions.reduce(
-    (acc, curr) => acc + (curr.type === 'Gastos e despesas fixas' ? curr.entry : 0),
+    (acc, curr) => acc + (!commercialTypes.includes(curr.type) && curr.entry > 0 ? curr.entry : 0),
     0,
   )
 
@@ -36,7 +44,7 @@ export function SummaryCards({ transactions }: { transactions: any[] }) {
       color: 'text-secondary',
     },
     {
-      title: 'Gastos Fixos',
+      title: 'Gastos Fixos/Saídas',
       value: totalExpenses,
       icon: ArrowDownRight,
       trend: '+5%',
@@ -68,7 +76,7 @@ export function SummaryCards({ transactions }: { transactions: any[] }) {
             <p className="text-xs text-muted-foreground mt-1">
               <span
                 className={
-                  card.trend.startsWith('+')
+                  card.trend.startsWith('+') && !card.title.includes('Gastos')
                     ? 'text-primary font-medium'
                     : 'text-destructive font-medium'
                 }
