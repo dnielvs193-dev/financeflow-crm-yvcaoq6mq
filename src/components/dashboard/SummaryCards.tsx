@@ -1,9 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
 
 export function SummaryCards({ transactions }: { transactions: any[] }) {
-  // Mock logic for demonstration
   const totalRevenue = transactions.reduce(
     (acc, curr) => acc + (curr.type === 'Clientes' || curr.type === 'Revendas' ? curr.entry : 0),
     0,

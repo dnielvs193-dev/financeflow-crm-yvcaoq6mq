@@ -1,4 +1,7 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
+import { getClientStatus } from '@/lib/formatters'
+
+export type ClientStatus = 'Devedor' | 'Teste' | 'Cancelado' | null
 
 export type Client = {
   id: string
@@ -8,7 +11,15 @@ export type Client = {
   expiryDate: string
   price: number
   cost: number
-  isDebtor: boolean
+  status: ClientStatus
+  user?: string
+  password?: string
+  obs1?: string
+  obs2?: string
+  city?: string
+  mac?: string
+  dkey?: string
+  panel?: string
   deleted?: boolean
 }
 
@@ -34,6 +45,14 @@ type MainStoreContextType = {
   clients: Client[]
   transactions: Transaction[]
   banks: Bank[]
+  searchQuery: string
+  setSearchQuery: (q: string) => void
+  statusFilter: string
+  setStatusFilter: (s: string) => void
+  serviceFilter: string
+  setServiceFilter: (s: string) => void
+  filteredClients: Client[]
+  filteredTransactions: Transaction[]
   addClient: (client: Omit<Client, 'id'>) => void
   updateClient: (id: string, updates: Partial<Client>) => void
   deleteClient: (id: string) => void
@@ -42,6 +61,7 @@ type MainStoreContextType = {
   renewClient: (id: string, days: number) => void
   addTransaction: (t: Omit<Transaction, 'id'>) => void
   addBank: (b: Omit<Bank, 'id'>) => void
+  importClients: (newClients: Omit<Client, 'id'>[]) => void
 }
 
 const MainStoreContext = createContext<MainStoreContextType | undefined>(undefined)
@@ -51,31 +71,40 @@ const mockClients: Client[] = [
     id: '1',
     name: 'João Silva',
     service: 'IPTV Premium',
+    panel: 'Painel 1',
     phone: '11999999999',
     expiryDate: new Date(Date.now() + 86400000 * 5).toISOString(),
     price: 35,
     cost: 10,
-    isDebtor: false,
+    status: null,
+    city: 'São Paulo',
+    user: 'joao.silva',
   },
   {
     id: '2',
     name: 'Maria Souza',
     service: 'P2P Basic',
+    panel: 'Painel 2',
     phone: '11988888888',
     expiryDate: new Date(Date.now() - 86400000 * 2).toISOString(),
     price: 25,
     cost: 8,
-    isDebtor: false,
+    status: null,
+    city: 'Rio de Janeiro',
+    user: 'maria.s',
   },
   {
     id: '3',
     name: 'Pedro Santos',
     service: 'IPTV Premium',
+    panel: 'Painel 1',
     phone: '11977777777',
     expiryDate: new Date(Date.now() + 86400000 * 15).toISOString(),
     price: 35,
     cost: 10,
-    isDebtor: true,
+    status: 'Devedor',
+    city: 'Belo Horizonte',
+    user: 'pedro.santos',
   },
 ]
 
@@ -102,10 +131,16 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions)
   const [banks, setBanks] = useState<Bank[]>(mockBanks)
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [serviceFilter, setServiceFilter] = useState('all')
+
   const addClient = (client: Omit<Client, 'id'>) =>
     setClients([...clients, { ...client, id: Math.random().toString(36).substr(2, 9) }])
+
   const updateClient = (id: string, updates: Partial<Client>) =>
     setClients(clients.map((c) => (c.id === id ? { ...c, ...updates } : c)))
+
   const deleteClient = (id: string) => updateClient(id, { deleted: true })
   const restoreClient = (id: string) => updateClient(id, { deleted: false })
   const hardDeleteClient = (id: string) => setClients(clients.filter((c) => c.id !== id))
@@ -122,8 +157,14 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     const client = clients.find((c) => c.id === id)
     if (!client) return
 
-    const newExpiry = new Date()
-    newExpiry.setDate(newExpiry.getDate() + days)
+    const currentStatus = getClientStatus(client.expiryDate, client.status)
+    let baseDate = new Date(client.expiryDate)
+
+    if (currentStatus === 'Vencido') {
+      baseDate = new Date()
+    }
+
+    baseDate.setDate(baseDate.getDate() + days)
 
     addTransaction({
       date: new Date().toISOString(),
@@ -136,8 +177,42 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       clientId: client.id,
     })
 
-    updateClient(id, { expiryDate: newExpiry.toISOString(), isDebtor: false })
+    const newStatus = client.status === 'Devedor' ? 'Devedor' : null
+    updateClient(id, { expiryDate: baseDate.toISOString(), status: newStatus })
   }
+
+  const importClients = (newClients: Omit<Client, 'id'>[]) => {
+    const clientsWithId = newClients.map((c) => ({
+      ...c,
+      id: Math.random().toString(36).substr(2, 9),
+    }))
+    setClients([...clientsWithId, ...clients])
+  }
+
+  const filteredClients = useMemo(() => {
+    return clients.filter((c) => {
+      if (c.deleted) return false
+      const st = getClientStatus(c.expiryDate, c.status)
+      if (statusFilter !== 'all' && st !== statusFilter) return false
+      if (serviceFilter !== 'all' && c.service !== serviceFilter) return false
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase()
+        return (
+          c.name.toLowerCase().includes(q) ||
+          c.phone.includes(q) ||
+          c.service.toLowerCase().includes(q) ||
+          st.toLowerCase().includes(q)
+        )
+      }
+      return true
+    })
+  }, [clients, searchQuery, statusFilter, serviceFilter])
+
+  const filteredTransactions = useMemo(() => {
+    if (!searchQuery && statusFilter === 'all' && serviceFilter === 'all') return transactions
+    const clientIds = new Set(filteredClients.map((c) => c.id))
+    return transactions.filter((t) => (t.clientId ? clientIds.has(t.clientId) : true))
+  }, [transactions, filteredClients, searchQuery, statusFilter, serviceFilter])
 
   return (
     <MainStoreContext.Provider
@@ -145,6 +220,14 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         clients,
         transactions,
         banks,
+        searchQuery,
+        setSearchQuery,
+        statusFilter,
+        setStatusFilter,
+        serviceFilter,
+        setServiceFilter,
+        filteredClients,
+        filteredTransactions,
         addClient,
         updateClient,
         deleteClient,
@@ -153,6 +236,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         renewClient,
         addTransaction,
         addBank,
+        importClients,
       }}
     >
       {children}

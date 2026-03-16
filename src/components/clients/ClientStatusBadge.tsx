@@ -1,32 +1,28 @@
 import { Badge } from '@/components/ui/badge'
 import { getClientStatus } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
 
 export function ClientStatusBadge({
   expiryDate,
-  isDebtor,
+  status,
 }: {
   expiryDate: string
-  isDebtor: boolean
+  status?: string | null
 }) {
-  const status = getClientStatus(expiryDate, isDebtor)
+  const currentStatus = getClientStatus(expiryDate, status)
 
-  if (status === 'Ativo') {
-    return (
-      <Badge className="bg-primary/15 text-primary hover:bg-primary/25 font-semibold border-0">
-        Ativo
-      </Badge>
-    )
+  const styles: Record<string, string> = {
+    Ativo: 'bg-green-500/15 text-green-600 hover:bg-green-500/25',
+    'Vence Hoje': 'bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/25',
+    Vencido: 'bg-red-500/15 text-red-600 hover:bg-red-500/25',
+    Devedor: 'bg-orange-500/15 text-orange-600 hover:bg-orange-500/25',
+    Teste: 'bg-purple-500/15 text-purple-600 hover:bg-purple-500/25',
+    Cancelado: 'bg-gray-500/15 text-gray-600 hover:bg-gray-500/25',
   }
-  if (status === 'Vencido') {
-    return (
-      <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/25 font-semibold border-0">
-        Vencido
-      </Badge>
-    )
-  }
+
   return (
-    <Badge className="bg-orange-500/15 text-orange-600 hover:bg-orange-500/25 font-semibold border-0">
-      Devedor
+    <Badge className={cn('font-semibold border-0', styles[currentStatus] || styles['Ativo'])}>
+      {currentStatus}
     </Badge>
   )
 }
