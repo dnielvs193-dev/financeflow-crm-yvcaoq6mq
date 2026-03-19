@@ -8,6 +8,7 @@ import Finance from './pages/Finance'
 import Inventory from './pages/Inventory'
 import Banks from './pages/Banks'
 import Trash from './pages/Trash'
+import Resellers from './pages/Resellers'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { MainStoreProvider } from './stores/useMainStore'
@@ -22,6 +23,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/clients" element={<Clients />} />
+            <Route path="/resellers" element={<Resellers />} />
             <Route path="/finance" element={<Finance />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/banks" element={<Banks />} />

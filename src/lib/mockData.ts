@@ -1,4 +1,4 @@
-import { Client, Bank, Transaction, InventoryItem, PriceTier } from '@/types'
+import { Client, Bank, Transaction, InventoryItem, PriceTier, Reseller } from '@/types'
 
 export const mockClients: Client[] = [
   {
@@ -72,5 +72,29 @@ export const mockTransactions: Transaction[] = [
     description: 'Renovação - João Silva - IPTV Premium',
     service: 'IPTV Premium',
     qty: 1,
+  },
+]
+
+export const mockResellers: Reseller[] = [
+  {
+    id: 'r1',
+    name: 'Carlos Distribuidor',
+    status: 'Ativo',
+    phone: '11977777777',
+    city: 'São Paulo',
+    clientCount: 45,
+    purchaseIntention: 'Alta',
+    registrationDate: new Date(Date.now() - 86400000 * 5).toISOString(),
+    observations: 'Excelente pagador, compra semanalmente.',
+  },
+  {
+    id: 'r2',
+    name: 'Ana Silva Revendas',
+    status: 'Lead',
+    phone: '21966666666',
+    city: 'Rio de Janeiro',
+    clientCount: 0,
+    purchaseIntention: 'Estudando painel',
+    registrationDate: new Date(Date.now() - 86400000 * 1).toISOString(),
   },
 ]

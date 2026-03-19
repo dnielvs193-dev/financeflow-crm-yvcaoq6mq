@@ -1,7 +1,14 @@
 import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
-import { Client, Transaction, Bank, InventoryItem, PriceTier } from '@/types'
+import { Client, Transaction, Bank, InventoryItem, PriceTier, Reseller } from '@/types'
 import { getClientStatus } from '@/lib/formatters'
-import { mockClients, mockBanks, mockTransactions, mockInventory, mockTiers } from '@/lib/mockData'
+import {
+  mockClients,
+  mockBanks,
+  mockTransactions,
+  mockInventory,
+  mockTiers,
+  mockResellers,
+} from '@/lib/mockData'
 
 export type ProcessTxPayload =
   | { action: 'standard'; tx: Omit<Transaction, 'id' | 'date'> & { date?: string } }
@@ -14,6 +21,7 @@ type MainStoreContextType = {
   banks: Bank[]
   inventory: InventoryItem[]
   tiers: PriceTier[]
+  resellers: Reseller[]
   searchQuery: string
   setSearchQuery: (q: string) => void
   statusFilter: string
@@ -30,6 +38,13 @@ type MainStoreContextType = {
   txPeriodFilter: string
   setTxPeriodFilter: (p: string) => void
   filteredTransactions: Transaction[]
+  resellerSearchQuery: string
+  setResellerSearchQuery: (q: string) => void
+  resellerStatusFilter: string
+  setResellerStatusFilter: (s: string) => void
+  resellerCityFilter: string
+  setResellerCityFilter: (s: string) => void
+  filteredResellers: Reseller[]
   addClient: (c: Omit<Client, 'id'>) => void
   updateClient: (id: string, u: Partial<Client>) => void
   deleteClient: (id: string) => void
@@ -42,6 +57,9 @@ type MainStoreContextType = {
     i: Omit<InventoryItem, 'id'>,
     itemTiers: Omit<PriceTier, 'id' | 'itemId'>[],
   ) => void
+  addReseller: (r: Omit<Reseller, 'id' | 'registrationDate'>) => void
+  updateReseller: (id: string, updates: Partial<Reseller>) => void
+  deleteReseller: (id: string) => void
 }
 
 const MainStoreContext = createContext<MainStoreContextType | undefined>(undefined)
@@ -52,6 +70,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [banks, setBanks] = useState<Bank[]>(mockBanks)
   const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory)
   const [tiers, setTiers] = useState<PriceTier[]>(mockTiers)
+  const [resellers, setResellers] = useState<Reseller[]>(mockResellers)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -61,6 +80,10 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [txTypeFilter, setTxTypeFilter] = useState('all')
   const [txBankFilter, setTxBankFilter] = useState('all')
   const [txPeriodFilter, setTxPeriodFilter] = useState('all')
+
+  const [resellerSearchQuery, setResellerSearchQuery] = useState('')
+  const [resellerStatusFilter, setResellerStatusFilter] = useState('all')
+  const [resellerCityFilter, setResellerCityFilter] = useState('all')
 
   const updateBankBalance = (bankId: string, amount: number) =>
     setBanks((prev) =>
@@ -88,7 +111,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         date: now,
         type: 'Transferência Interna',
         entry: 0,
-        cost: payload.amount, // Out from origin
+        cost: payload.amount,
         profit: -payload.amount,
         bankId: payload.fromBank,
         description: `Saída: Transferência enviada - ${payload.desc}`,
@@ -98,7 +121,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         id: id2,
         date: now,
         type: 'Transferência Interna',
-        entry: payload.amount, // In to destination
+        entry: payload.amount,
         cost: 0,
         profit: payload.amount,
         bankId: payload.toBank,
@@ -130,7 +153,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       updateBankBalance(orig.bankId, -orig.profit)
       if (orig.itemId && orig.qty) {
         const isSales = ['Venda para Revenda', 'Taxa de Ativação'].includes(orig.type)
-        updateStock(orig.itemId, orig.qty, isSales) // Reverte o estoque
+        updateStock(orig.itemId, orig.qty, isSales)
       }
       return
     }
@@ -161,6 +184,25 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       ...itemTiers.map((t) => ({ ...t, id: Math.random().toString(36).substr(2, 9), itemId: id })),
       ...prev,
     ])
+  }
+
+  const addReseller = (r: Omit<Reseller, 'id' | 'registrationDate'>) => {
+    setResellers((prev) => [
+      {
+        ...r,
+        id: Math.random().toString(36).substr(2, 9),
+        registrationDate: new Date().toISOString(),
+      },
+      ...prev,
+    ])
+  }
+
+  const updateReseller = (id: string, updates: Partial<Reseller>) => {
+    setResellers((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)))
+  }
+
+  const deleteReseller = (id: string) => {
+    setResellers((prev) => prev.filter((r) => r.id !== id))
   }
 
   const addClient = (c: Omit<Client, 'id'>) =>
@@ -266,6 +308,21 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }, [transactions, txSearchQuery, txTypeFilter, txBankFilter, txPeriodFilter])
 
+  const filteredResellers = useMemo(() => {
+    let filtered = resellers.filter((r) => {
+      if (resellerStatusFilter !== 'all' && r.status !== resellerStatusFilter) return false
+      if (resellerCityFilter !== 'all' && r.city !== resellerCityFilter) return false
+      if (resellerSearchQuery) {
+        const q = resellerSearchQuery.toLowerCase()
+        return r.name.toLowerCase().includes(q)
+      }
+      return true
+    })
+    return filtered.sort(
+      (a, b) => new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime(),
+    )
+  }, [resellers, resellerSearchQuery, resellerStatusFilter, resellerCityFilter])
+
   return (
     <MainStoreContext.Provider
       value={{
@@ -274,6 +331,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         banks,
         inventory,
         tiers,
+        resellers,
         searchQuery,
         setSearchQuery,
         statusFilter,
@@ -290,6 +348,13 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         txPeriodFilter,
         setTxPeriodFilter,
         filteredTransactions,
+        resellerSearchQuery,
+        setResellerSearchQuery,
+        resellerStatusFilter,
+        setResellerStatusFilter,
+        resellerCityFilter,
+        setResellerCityFilter,
+        filteredResellers,
         addClient,
         updateClient,
         deleteClient,
@@ -299,6 +364,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         renewClient,
         processTransaction,
         saveInventoryItem,
+        addReseller,
+        updateReseller,
+        deleteReseller,
       }}
     >
       {children}

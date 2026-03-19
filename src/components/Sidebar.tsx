@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Wallet, Box, Building2, Trash2 } from 'lucide-react'
+import { LayoutDashboard, Users, Wallet, Box, Building2, Trash2, Network } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function Sidebar() {
@@ -8,6 +8,7 @@ export function Sidebar() {
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/clients', label: 'Clientes', icon: Users },
+    { href: '/resellers', label: 'Revendas', icon: Network },
     { href: '/finance', label: 'Extrato', icon: Wallet },
     { href: '/inventory', label: 'Estoque & Serviços', icon: Box },
     { href: '/banks', label: 'Bancos', icon: Building2 },

@@ -6,6 +6,7 @@ import { MobileNav } from './MobileNav'
 const routeTitles: Record<string, string> = {
   '/': 'Dashboard Overview',
   '/clients': 'Módulo de Clientes',
+  '/resellers': 'Módulo de Revendas',
   '/finance': 'Módulo Financeiro',
   '/banks': 'Bancos e Contas',
   '/trash': 'Lixeira',

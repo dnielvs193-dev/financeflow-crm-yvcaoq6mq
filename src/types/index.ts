@@ -81,3 +81,17 @@ export type PriceTier = {
   unitPrice: number
   unitCost: number
 }
+
+export type ResellerStatus = 'Ativo' | 'Inativo' | 'Lead'
+
+export type Reseller = {
+  id: string
+  name: string
+  status: ResellerStatus
+  phone: string
+  city: string
+  observations?: string
+  clientCount: number
+  purchaseIntention?: string
+  registrationDate: string
+}
