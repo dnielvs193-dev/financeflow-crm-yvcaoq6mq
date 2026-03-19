@@ -3,7 +3,7 @@ import { TrendingUp, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react'
 import { Transaction } from '@/types'
 import { formatCurrency } from '@/lib/formatters'
 
-export function SummaryCards({ transactions }: { transactions: Transaction[] }) {
+export function SummaryCards({ transactions = [] }: { transactions?: Transaction[] }) {
   const getEffType = (t: Transaction) =>
     t.type === 'Estorno Financeiro' && t.originalTxId
       ? transactions.find((x) => x.id === t.originalTxId)?.type || t.type
@@ -11,7 +11,7 @@ export function SummaryCards({ transactions }: { transactions: Transaction[] }) 
 
   const commTypes = ['Renovação de Cliente', 'Venda para Revenda', 'Taxa de Ativação']
 
-  const metrics = transactions.reduce(
+  const metrics = (transactions || []).reduce(
     (acc, t) => {
       const effType = getEffType(t)
       if (commTypes.includes(effType)) {
@@ -26,8 +26,7 @@ export function SummaryCards({ transactions }: { transactions: Transaction[] }) 
           'Pagamento de Contas',
         ].includes(effType)
       ) {
-        // For expenses, cost is the positive value we want to sum, entry is usually 0, but profit is negative.
-        // Easiest is to sum the absolute value of profit if it's purely a cost.
+        // For expenses, absolute value of cost/profit depending on entry
         acc.opCost += Math.abs(t.profit < 0 ? t.profit : t.cost)
       }
       if (effType === 'Outras Entradas') {

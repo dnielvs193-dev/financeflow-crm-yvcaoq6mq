@@ -6,9 +6,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info } from 'lucide-react'
 
 export default function Index() {
-  const { filteredTransactions, searchQuery, statusFilter, serviceFilter } = useMainStore()
+  const { filteredTransactions, txSearchQuery, txTypeFilter, txBankFilter, txPeriodFilter } =
+    useMainStore()
 
-  const isFiltered = searchQuery || statusFilter !== 'all' || serviceFilter !== 'all'
+  const isFiltered =
+    txSearchQuery || txTypeFilter !== 'all' || txBankFilter !== 'all' || txPeriodFilter !== 'all'
 
   return (
     <div className="flex flex-col gap-6">
@@ -16,8 +18,8 @@ export default function Index() {
         <Alert className="bg-primary/5 border-primary/20 animate-fade-in-down">
           <Info className="h-4 w-4 text-primary" />
           <AlertDescription className="text-primary font-medium text-sm">
-            Filtros de clientes ativos. Os indicadores financeiros abaixo estão refletindo apenas os
-            dados do subconjunto filtrado.
+            Filtros financeiros ativos. Os indicadores abaixo estão refletindo apenas os dados do
+            subconjunto filtrado (Extrato).
           </AlertDescription>
         </Alert>
       )}
@@ -26,7 +28,7 @@ export default function Index() {
         <RevenueChart transactions={filteredTransactions} />
         <div className="hidden lg:flex rounded-lg border bg-card text-card-foreground shadow-sm items-center justify-center p-6 bg-muted/10 border-dashed">
           <p className="text-muted-foreground text-sm">
-            Gráfico de Distribuição de Status em desenvolvimento...
+            Gráfico de Distribuição de Custo e Lucro em desenvolvimento...
           </p>
         </div>
       </div>

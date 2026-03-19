@@ -9,7 +9,7 @@ const chartConfig = {
 }
 
 export function RevenueChart({ transactions = [] }: { transactions?: Transaction[] }) {
-  const commTransactions = transactions.filter((t) =>
+  const commTransactions = (transactions || []).filter((t) =>
     ['Renovação de Cliente', 'Venda para Revenda', 'Taxa de Ativação'].includes(t.type),
   )
   const baseRevenue = commTransactions.reduce((a, c) => a + c.entry, 0)

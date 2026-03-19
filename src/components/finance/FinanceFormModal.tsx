@@ -34,6 +34,7 @@ export function FinanceFormModal() {
     entry: '',
     cost: '',
     desc: '',
+    tierRef: '',
   }
   const [formData, setFormData] = useState(initialForm)
   const [tierError, setTierError] = useState('')
@@ -57,16 +58,23 @@ export function FinanceFormModal() {
       if (matchedTier) {
         setTierError('')
         if (isPurchase) {
-          setFormData((p) => ({ ...p, entry: '0', cost: (matchedTier.unitCost * qty).toString() }))
+          setFormData((p) => ({
+            ...p,
+            entry: '0',
+            cost: (matchedTier.unitCost * qty).toString(),
+            tierRef: matchedTier.id,
+          }))
         } else {
           setFormData((p) => ({
             ...p,
             entry: (matchedTier.unitPrice * qty).toString(),
             cost: (matchedTier.unitCost * qty).toString(),
+            tierRef: matchedTier.id,
           }))
         }
       } else {
-        setTierError('Qtd não coberta pelas faixas de preço.')
+        setTierError('Qtd não coberta pelas faixas de preço (Tiers).')
+        setFormData((p) => ({ ...p, tierRef: '' }))
       }
     }
   }, [formData.type, formData.itemId, formData.qty, isStockTx, isPurchase, tiers])
@@ -93,7 +101,7 @@ export function FinanceFormModal() {
         bankId: formData.bankId,
         description: formData.desc,
         ...(isStockTx && formData.itemId !== 'none'
-          ? { itemId: formData.itemId, qty: Number(formData.qty) }
+          ? { itemId: formData.itemId, qty: Number(formData.qty), tierRef: formData.tierRef }
           : {}),
       },
     })
@@ -206,7 +214,7 @@ export function FinanceFormModal() {
             </div>
 
             <div className="space-y-2 col-span-2">
-              <Label>Descrição</Label>
+              <Label>Descrição / Observação</Label>
               <Input
                 required
                 value={formData.desc}

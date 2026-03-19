@@ -21,6 +21,15 @@ type MainStoreContextType = {
   serviceFilter: string
   setServiceFilter: (s: string) => void
   filteredClients: Client[]
+  txSearchQuery: string
+  setTxSearchQuery: (q: string) => void
+  txTypeFilter: string
+  setTxTypeFilter: (t: string) => void
+  txBankFilter: string
+  setTxBankFilter: (b: string) => void
+  txPeriodFilter: string
+  setTxPeriodFilter: (p: string) => void
+  filteredTransactions: Transaction[]
   addClient: (c: Omit<Client, 'id'>) => void
   updateClient: (id: string, u: Partial<Client>) => void
   deleteClient: (id: string) => void
@@ -48,6 +57,11 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [serviceFilter, setServiceFilter] = useState('all')
 
+  const [txSearchQuery, setTxSearchQuery] = useState('')
+  const [txTypeFilter, setTxTypeFilter] = useState('all')
+  const [txBankFilter, setTxBankFilter] = useState('all')
+  const [txPeriodFilter, setTxPeriodFilter] = useState('all')
+
   const updateBankBalance = (bankId: string, amount: number) =>
     setBanks((prev) =>
       prev.map((b) => (b.id === bankId ? { ...b, balance: b.balance + amount } : b)),
@@ -74,21 +88,21 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         date: now,
         type: 'Transferência Interna',
         entry: 0,
-        cost: 0,
+        cost: payload.amount, // Out from origin
         profit: -payload.amount,
         bankId: payload.fromBank,
-        description: `Transferência enviada - ${payload.desc}`,
+        description: `Saída: Transferência enviada - ${payload.desc}`,
         linkedTransferId: id2,
       }
       const tx2: Transaction = {
         id: id2,
         date: now,
         type: 'Transferência Interna',
-        entry: 0,
+        entry: payload.amount, // In to destination
         cost: 0,
         profit: payload.amount,
         bankId: payload.toBank,
-        description: `Transferência recebida - ${payload.desc}`,
+        description: `Entrada: Transferência recebida - ${payload.desc}`,
         linkedTransferId: id1,
       }
       setTransactions((prev) => [tx2, tx1, ...prev])
@@ -191,7 +205,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
           cost: client.cost,
           profit: client.price - client.cost,
           bankId: banks[0]?.id || '',
-          description: `Renovação - ${client.name} - ${client.service}`,
+          description: `Renovação Auto - ${client.name} - ${client.service}`,
           clientId: client.id,
           service: client.service,
           qty: 1,
@@ -226,6 +240,32 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     [clients, searchQuery, statusFilter, serviceFilter],
   )
 
+  const filteredTransactions = useMemo(() => {
+    let filtered = transactions.filter((t) => {
+      if (txTypeFilter !== 'all' && t.type !== txTypeFilter) return false
+      if (txBankFilter !== 'all' && t.bankId !== txBankFilter) return false
+      if (txPeriodFilter !== 'all') {
+        const now = new Date()
+        const txDate = new Date(t.date)
+        if (txPeriodFilter === '7d' && (now.getTime() - txDate.getTime()) / 86400000 > 7)
+          return false
+        if (txPeriodFilter === '30d' && (now.getTime() - txDate.getTime()) / 86400000 > 30)
+          return false
+      }
+      if (txSearchQuery) {
+        const q = txSearchQuery.toLowerCase()
+        return (
+          t.description.toLowerCase().includes(q) ||
+          t.type.toLowerCase().includes(q) ||
+          t.service?.toLowerCase().includes(q) ||
+          t.obs?.toLowerCase().includes(q)
+        )
+      }
+      return true
+    })
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [transactions, txSearchQuery, txTypeFilter, txBankFilter, txPeriodFilter])
+
   return (
     <MainStoreContext.Provider
       value={{
@@ -241,6 +281,15 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         serviceFilter,
         setServiceFilter,
         filteredClients,
+        txSearchQuery,
+        setTxSearchQuery,
+        txTypeFilter,
+        setTxTypeFilter,
+        txBankFilter,
+        setTxBankFilter,
+        txPeriodFilter,
+        setTxPeriodFilter,
+        filteredTransactions,
         addClient,
         updateClient,
         deleteClient,

@@ -44,6 +44,7 @@ export type Transaction = {
   profitPercentage?: number
   bankId: string
   description: string
+  obs?: string
   clientId?: string
   service?: string
   itemId?: string

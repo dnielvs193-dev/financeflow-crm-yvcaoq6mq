@@ -29,6 +29,7 @@ export function InventoryFormModal() {
   const [formData, setFormData] = useState({
     name: '',
     category: 'Revenda' as InventoryCategory,
+    status: 'Ativo' as 'Ativo' | 'Inativo',
     stockControl: true,
     currentStock: '0',
     obs: '',
@@ -52,13 +53,22 @@ export function InventoryFormModal() {
         category: formData.category,
         stockControl: formData.stockControl,
         currentStock: Number(formData.currentStock) || 0,
-        status: 'Ativo',
+        status: formData.status,
         observations: formData.obs,
       },
       parsedTiers,
     )
     toast({ title: 'Item cadastrado com sucesso!' })
     setOpen(false)
+    setFormData({
+      name: '',
+      category: 'Revenda',
+      status: 'Ativo',
+      stockControl: true,
+      currentStock: '0',
+      obs: '',
+    })
+    setTierData([{ startQty: 1, endQty: '', unitPrice: '', unitCost: '' }])
   }
 
   return (
@@ -68,7 +78,7 @@ export function InventoryFormModal() {
           <Plus className="h-4 w-4" /> Novo Item
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cadastrar Estoque / Serviço</DialogTitle>
         </DialogHeader>
@@ -100,14 +110,40 @@ export function InventoryFormModal() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2 col-span-2 md:col-span-1">
+              <Label>Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(v) =>
+                  setFormData({ ...formData, status: v as 'Ativo' | 'Inativo' })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Inativo">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 col-span-2 md:col-span-1">
+              <Label>Observações</Label>
+              <Input
+                placeholder="Detalhes internos..."
+                value={formData.obs}
+                onChange={(e) => setFormData({ ...formData, obs: e.target.value })}
+              />
+            </div>
           </div>
+
           <div className="flex items-center space-x-2 bg-muted/30 p-3 rounded-lg border">
             <Switch
               id="stock-ctrl"
               checked={formData.stockControl}
               onCheckedChange={(c) => setFormData({ ...formData, stockControl: c })}
             />
-            <Label htmlFor="stock-ctrl" className="flex-1">
+            <Label htmlFor="stock-ctrl" className="flex-1 cursor-pointer">
               Controlar Quantidade em Estoque?
             </Label>
             {formData.stockControl && (
@@ -123,6 +159,9 @@ export function InventoryFormModal() {
 
           <div className="space-y-3 mt-2 border-t pt-4">
             <Label className="text-base font-semibold">Faixas de Preço (Tiers)</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Defina o preço de venda e custo de acordo com a quantidade (ex: 1-9 un, 10+ un).
+            </p>
             {tierData.map((tier, idx) => (
               <div key={idx} className="flex gap-2 items-end bg-muted/10 p-2 rounded border">
                 <div className="space-y-1 flex-1">
@@ -153,7 +192,7 @@ export function InventoryFormModal() {
                   />
                 </div>
                 <div className="space-y-1 flex-1">
-                  <Label className="text-xs text-muted-foreground">Venda (R$)</Label>
+                  <Label className="text-xs text-muted-foreground">Venda un. (R$)</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -167,7 +206,7 @@ export function InventoryFormModal() {
                   />
                 </div>
                 <div className="space-y-1 flex-1">
-                  <Label className="text-xs text-muted-foreground">Custo (R$)</Label>
+                  <Label className="text-xs text-muted-foreground">Custo un. (R$)</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -199,7 +238,7 @@ export function InventoryFormModal() {
               onClick={() =>
                 setTierData([...tierData, { startQty: 1, endQty: '', unitPrice: '', unitCost: '' }])
               }
-              className="w-full border-dashed"
+              className="w-full border-dashed mt-2"
             >
               + Adicionar Faixa de Preço
             </Button>

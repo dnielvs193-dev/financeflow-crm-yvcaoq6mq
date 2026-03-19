@@ -26,7 +26,7 @@ import { RotateCcw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export function FinanceList({ transactions }: { transactions: Transaction[] }) {
-  const { banks, processTransaction, inventory } = useMainStore()
+  const { banks, processTransaction, inventory, tiers } = useMainStore()
   const { toast } = useToast()
 
   const handleReversal = (id: string) => {
@@ -50,15 +50,15 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
 
   return (
     <div className="rounded-md border bg-card overflow-x-auto">
-      <Table className="min-w-[1000px]">
+      <Table className="min-w-[1100px]">
         <TableHeader>
           <TableRow>
             <TableHead>Data / Tipo</TableHead>
-            <TableHead>Descrição / Item</TableHead>
+            <TableHead>Descrição / Obs</TableHead>
+            <TableHead>Item / Serviço / Faixa</TableHead>
             <TableHead>Banco</TableHead>
-            <TableHead className="text-right">Entrada / Qtd</TableHead>
-            <TableHead className="text-right">Lucro Líquido</TableHead>
-            <TableHead className="text-right w-[80px]">Estorno</TableHead>
+            <TableHead className="text-right">Finanças</TableHead>
+            <TableHead className="text-right w-[80px]">Audit</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -68,6 +68,7 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
               !t.isReversal &&
               !transactions.some((rt) => revCheck(rt, t.id))
             const item = t.itemId ? inventory.find((i) => i.id === t.itemId) : null
+            const tier = t.tierRef ? tiers.find((ti) => ti.id === t.tierRef) : null
 
             return (
               <TableRow
@@ -84,9 +85,17 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
                   <div className="font-medium max-w-[280px] truncate" title={t.description}>
                     {t.description}
                   </div>
+                  {t.obs && <div className="text-xs text-muted-foreground mt-0.5">{t.obs}</div>}
+                </TableCell>
+                <TableCell>
                   {(t.service || item) && (
-                    <div className="text-xs text-muted-foreground mt-0.5">
+                    <div className="font-medium text-sm">
                       {t.service || item?.name} {t.qty ? `(x${t.qty})` : ''}
+                    </div>
+                  )}
+                  {tier && (
+                    <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                      Ref: Tier {tier.startQty}-{tier.endQty || '∞'}
                     </div>
                   )}
                 </TableCell>
@@ -94,25 +103,29 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
                   {banks.find((b) => b.id === t.bankId)?.name}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="font-medium">{formatCurrency(t.entry)}</div>
-                  {t.cost > 0 && (
-                    <div className="text-xs text-muted-foreground">
-                      Custo: {formatCurrency(t.cost)}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div
-                    className={`font-bold ${t.profit >= 0 ? 'text-primary' : 'text-destructive'}`}
-                  >
-                    {t.profit > 0 ? '+' : ''}
-                    {formatCurrency(t.profit)}
+                  <div className="flex flex-col items-end gap-0.5">
+                    {t.entry > 0 && (
+                      <div className="text-sm font-medium">Ent: {formatCurrency(t.entry)}</div>
+                    )}
+                    {t.cost > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        Custo: {formatCurrency(t.cost)}
+                      </div>
+                    )}
+                    {(t.entry > 0 || t.cost > 0) && (
+                      <div
+                        className={`text-sm font-bold ${t.profit >= 0 ? 'text-primary' : 'text-destructive'}`}
+                      >
+                        {t.profit > 0 ? '+' : ''}
+                        {formatCurrency(t.profit)}
+                      </div>
+                    )}
+                    {t.profitPercentage !== undefined && t.profitPercentage > 0 && (
+                      <div className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-medium w-fit">
+                        {t.profitPercentage.toFixed(0)}% mg
+                      </div>
+                    )}
                   </div>
-                  {t.profitPercentage !== undefined && t.profitPercentage > 0 && (
-                    <div className="text-[10px] text-muted-foreground font-medium">
-                      {t.profitPercentage.toFixed(0)}% margem
-                    </div>
-                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   {isReversible && (
@@ -129,11 +142,11 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
                       <AlertDialogContent className="border-destructive/30">
                         <AlertDialogHeader>
                           <AlertDialogTitle className="text-destructive flex items-center gap-2">
-                            <RotateCcw className="h-5 w-5" /> Confirmar reversão e envio
+                            <RotateCcw className="h-5 w-5" /> Confirmar reversão
                           </AlertDialogTitle>
                           <AlertDialogDescription className="text-foreground pt-2">
-                            O estorno desfará os impactos desta transação nos saldos e estoque.
-                            Criará um registro de compensação cruzado. <br />
+                            O estorno desfará os impactos desta transação nos saldos e estoque,
+                            criando um registro de compensação cruzado. <br />
                             <br />
                             <strong>Esta ação é irreversível.</strong>
                           </AlertDialogDescription>
@@ -144,7 +157,7 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
                             onClick={() => handleReversal(t.id)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
-                            Confirmar e enviar
+                            Confirmar Estorno
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -154,6 +167,13 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
               </TableRow>
             )
           })}
+          {transactions.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                Nenhum lançamento encontrado.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

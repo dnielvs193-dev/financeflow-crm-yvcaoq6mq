@@ -25,8 +25,8 @@ export function InventoryList() {
   }
 
   return (
-    <div className="rounded-md border bg-card overflow-hidden">
-      <Table>
+    <div className="rounded-md border bg-card overflow-x-auto">
+      <Table className="min-w-[800px]">
         <TableHeader>
           <TableRow>
             <TableHead>Item / Serviço</TableHead>
@@ -42,12 +42,12 @@ export function InventoryList() {
               .filter((t) => t.itemId === item.id)
               .sort((a, b) => a.startQty - b.startQty)
             return (
-              <TableRow key={item.id}>
+              <TableRow key={item.id} className={item.status === 'Inativo' ? 'opacity-60' : ''}>
                 <TableCell className="font-medium">
                   {item.name}
                   {item.observations && (
                     <div className="text-xs text-muted-foreground font-normal mt-1">
-                      {item.observations}
+                      Obs: {item.observations}
                     </div>
                   )}
                 </TableCell>
@@ -69,7 +69,7 @@ export function InventoryList() {
                       {item.currentStock} un
                     </span>
                   ) : (
-                    <span className="text-muted-foreground text-sm">Ilimitado</span>
+                    <span className="text-muted-foreground text-sm font-medium">Ilimitado</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -77,15 +77,15 @@ export function InventoryList() {
                     {itemTiers.map((t) => (
                       <div
                         key={t.id}
-                        className="text-xs bg-muted/40 p-1 px-2 rounded flex justify-between w-[220px]"
+                        className="text-xs bg-muted/40 p-1 px-2 rounded flex justify-between w-[240px] items-center"
                       >
                         <span className="text-muted-foreground">
                           {t.startQty} {t.endQty ? `- ${t.endQty}` : '+'} un:
                         </span>
-                        <span className="font-medium">
-                          {formatCurrency(t.unitPrice)}{' '}
+                        <span className="font-medium flex flex-col items-end">
+                          <span>Venda: {formatCurrency(t.unitPrice)}</span>
                           <span className="text-[10px] text-muted-foreground">
-                            (c. {formatCurrency(t.unitCost)})
+                            Custo: {formatCurrency(t.unitCost)}
                           </span>
                         </span>
                       </div>
@@ -96,7 +96,9 @@ export function InventoryList() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{item.status}</Badge>
+                  <Badge variant={item.status === 'Ativo' ? 'default' : 'secondary'}>
+                    {item.status}
+                  </Badge>
                 </TableCell>
               </TableRow>
             )
