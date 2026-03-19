@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import useMainStore from '@/stores/useMainStore'
-import { Building2, Plus, ArrowRightLeft } from 'lucide-react'
+import { Building2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/formatters'
+import { TransferModal } from '@/components/finance/TransferModal'
 
 export default function Banks() {
   const { banks } = useMainStore()
@@ -13,7 +14,9 @@ export default function Banks() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Bancos e Contas</h2>
-          <p className="text-muted-foreground text-sm">Gerencie seus saldos e carteiras.</p>
+          <p className="text-muted-foreground text-sm">
+            Gerencie seus saldos, transferências e carteiras.
+          </p>
         </div>
         <Button className="gap-2">
           <Plus className="h-4 w-4" /> Nova Conta
@@ -29,9 +32,9 @@ export default function Banks() {
               </p>
               <h3 className="text-4xl font-bold">{formatCurrency(totalBalance)}</h3>
             </div>
-            <Button variant="secondary" className="mt-4 sm:mt-0 gap-2">
-              <ArrowRightLeft className="h-4 w-4" /> Transferência
-            </Button>
+            <div className="mt-4 sm:mt-0 flex gap-2">
+              <TransferModal />
+            </div>
           </CardContent>
         </Card>
 
@@ -50,8 +53,8 @@ export default function Banks() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold mt-2">{formatCurrency(bank.balance)}</div>
-              <p className="text-xs text-muted-foreground mt-1 cursor-pointer hover:text-primary">
-                Ver extrato
+              <p className="text-xs text-muted-foreground mt-1 cursor-pointer hover:text-primary transition-colors">
+                Ver extrato detalhado
               </p>
             </CardContent>
           </Card>

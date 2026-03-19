@@ -1,51 +1,70 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react'
+import { Transaction } from '@/types'
+import { formatCurrency } from '@/lib/formatters'
 
-export function SummaryCards({ transactions }: { transactions: any[] }) {
-  const commercialTypes = ['Clientes', 'Revendas']
+export function SummaryCards({ transactions }: { transactions: Transaction[] }) {
+  const getEffType = (t: Transaction) =>
+    t.type === 'Estorno Financeiro' && t.originalTxId
+      ? transactions.find((x) => x.id === t.originalTxId)?.type || t.type
+      : t.type
 
-  const totalRevenue = transactions.reduce(
-    (acc, curr) => acc + (commercialTypes.includes(curr.type) ? curr.entry : 0),
-    0,
+  const commTypes = ['Renovação de Cliente', 'Venda para Revenda', 'Taxa de Ativação']
+
+  const metrics = transactions.reduce(
+    (acc, t) => {
+      const effType = getEffType(t)
+      if (commTypes.includes(effType)) {
+        acc.commRev += t.entry
+        acc.commCost += t.cost
+      }
+      if (
+        [
+          'Compra de Estoque',
+          'Compra de Ativação',
+          'Gastos Avulsos',
+          'Pagamento de Contas',
+        ].includes(effType)
+      ) {
+        // For expenses, cost is the positive value we want to sum, entry is usually 0, but profit is negative.
+        // Easiest is to sum the absolute value of profit if it's purely a cost.
+        acc.opCost += Math.abs(t.profit < 0 ? t.profit : t.cost)
+      }
+      if (effType === 'Outras Entradas') {
+        acc.otherIn += t.entry
+      }
+      return acc
+    },
+    { commRev: 0, commCost: 0, opCost: 0, otherIn: 0 },
   )
 
-  const totalCost = transactions.reduce(
-    (acc, curr) => acc + (commercialTypes.includes(curr.type) ? curr.cost : 0),
-    0,
-  )
-
-  const totalProfit = totalRevenue - totalCost
-
-  const totalExpenses = transactions.reduce(
-    (acc, curr) => acc + (!commercialTypes.includes(curr.type) && curr.entry > 0 ? curr.entry : 0),
-    0,
-  )
+  const commProfit = metrics.commRev - metrics.commCost
 
   const cards = [
     {
-      title: 'Faturamento',
-      value: totalRevenue,
+      title: 'Faturamento Comercial',
+      value: metrics.commRev,
       icon: TrendingUp,
       trend: '+12%',
       color: 'text-primary',
     },
     {
-      title: 'Lucro Líquido',
-      value: totalProfit,
+      title: 'Lucro Comercial',
+      value: commProfit,
       icon: ArrowUpRight,
       trend: '+8%',
       color: 'text-primary',
     },
     {
-      title: 'Custo de Operação',
-      value: totalCost,
+      title: 'Custo Comercial (Tiers)',
+      value: metrics.commCost,
       icon: Wallet,
       trend: '-2%',
       color: 'text-secondary',
     },
     {
-      title: 'Gastos Fixos/Saídas',
-      value: totalExpenses,
+      title: 'Custo Operacional',
+      value: metrics.opCost,
       icon: ArrowDownRight,
       trend: '+5%',
       color: 'text-destructive',
@@ -68,15 +87,11 @@ export function SummaryCards({ transactions }: { transactions: any[] }) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                card.value,
-              )}
-            </div>
+            <div className="text-2xl font-bold">{formatCurrency(card.value)}</div>
             <p className="text-xs text-muted-foreground mt-1">
               <span
                 className={
-                  card.trend.startsWith('+') && !card.title.includes('Gastos')
+                  card.trend.startsWith('+') && !card.title.includes('Custo')
                     ? 'text-primary font-medium'
                     : 'text-destructive font-medium'
                 }

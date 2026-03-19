@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import useMainStore, { Client } from '@/stores/useMainStore'
+import useMainStore from '@/stores/useMainStore'
+import { Client } from '@/types'
 import { ClientStatusBadge } from './ClientStatusBadge'
 import { formatDate, formatCurrency } from '@/lib/formatters'
 import {
@@ -38,7 +39,7 @@ export function ClientList() {
 
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [sortCol, setSortCol] = useState<'name' | 'service' | 'expiryDate'>('expiryDate')
-  const [sortDesc, setSortDesc] = useState(false) // Default ascending for expiry (critical first)
+  const [sortDesc, setSortDesc] = useState(false)
 
   const handleRenew = (id: string, days: number) => {
     renewClient(id, days)
@@ -47,7 +48,7 @@ export function ClientList() {
       title: isManual ? 'Data ajustada' : 'Renovação concluída',
       description: isManual
         ? `Ajuste de ${days > 0 ? '+' : ''}${days}d aplicado.`
-        : `Adicionado +${days} dias e lançamento gerado no Extrato.`,
+        : `Adicionado +${days} dias e lançamento gerado no Extrato financeiro.`,
     })
   }
 
@@ -109,7 +110,7 @@ export function ClientList() {
                 Status / Venc. {sortCol === 'expiryDate' && (sortDesc ? '↓' : '↑')}
               </TableHead>
               <TableHead>Financeiro</TableHead>
-              <TableHead className="w-[240px]">Gestão de Vencimento</TableHead>
+              <TableHead className="w-[280px]">Gestão de Vencimento</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -245,7 +246,7 @@ export function ClientList() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
-                {[15, 30].map((d) => (
+                {[15, 30, 31].map((d) => (
                   <Button
                     key={d}
                     variant="outline"

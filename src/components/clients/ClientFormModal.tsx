@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import useMainStore, { Client, ClientStatus } from '@/stores/useMainStore'
+import useMainStore from '@/stores/useMainStore'
+import { Client, ClientStatus } from '@/types'
 import { Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -86,9 +87,7 @@ export function ClientFormModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-
     const parsedStatus = formData.status === 'Automático' ? null : (formData.status as ClientStatus)
-
     const clientData = {
       name: formData.name,
       phone: formData.phone,
@@ -130,7 +129,6 @@ export function ClientFormModal({
           </Button>
         </DialogTrigger>
       ) : null}
-
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{client ? 'Editar Cliente' : 'Novo Cadastro'}</DialogTitle>

@@ -1,53 +1,19 @@
 import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
+import { Client, Transaction, Bank, InventoryItem, PriceTier } from '@/types'
 import { getClientStatus } from '@/lib/formatters'
+import { mockClients, mockBanks, mockTransactions, mockInventory, mockTiers } from '@/lib/mockData'
 
-export type ClientStatus = 'Devedor' | 'Vencido +30d' | null
-
-export type Client = {
-  id: string
-  name: string
-  service: string
-  phone: string
-  expiryDate: string
-  lastExpiryDate?: string
-  price: number
-  cost: number
-  status: ClientStatus
-  user?: string
-  password?: string
-  obs1?: string
-  obs2?: string
-  city?: string
-  mac?: string
-  dkey?: string
-  panel?: string
-  deleted?: boolean
-}
-
-export type Transaction = {
-  id: string
-  date: string
-  type: string
-  entry: number
-  cost: number
-  profit: number
-  bankId: string
-  description: string
-  clientId?: string
-  service?: string
-  quantity?: number
-}
-
-export type Bank = {
-  id: string
-  name: string
-  balance: number
-}
+export type ProcessTxPayload =
+  | { action: 'standard'; tx: Omit<Transaction, 'id' | 'date'> & { date?: string } }
+  | { action: 'transfer'; fromBank: string; toBank: string; amount: number; desc: string }
+  | { action: 'reverse'; originalId: string }
 
 type MainStoreContextType = {
   clients: Client[]
   transactions: Transaction[]
   banks: Bank[]
+  inventory: InventoryItem[]
+  tiers: PriceTier[]
   searchQuery: string
   setSearchQuery: (q: string) => void
   statusFilter: string
@@ -55,107 +21,156 @@ type MainStoreContextType = {
   serviceFilter: string
   setServiceFilter: (s: string) => void
   filteredClients: Client[]
-  filteredTransactions: Transaction[]
-  addClient: (client: Omit<Client, 'id'>) => void
-  updateClient: (id: string, updates: Partial<Client>) => void
+  addClient: (c: Omit<Client, 'id'>) => void
+  updateClient: (id: string, u: Partial<Client>) => void
   deleteClient: (id: string) => void
+  restoreClient: (id: string) => void
+  hardDeleteClient: (id: string) => void
   renewClient: (id: string, days: number) => void
-  addTransaction: (t: Omit<Transaction, 'id'>) => void
   importClients: (newClients: Omit<Client, 'id'>[]) => void
+  processTransaction: (p: ProcessTxPayload) => void
+  saveInventoryItem: (
+    i: Omit<InventoryItem, 'id'>,
+    itemTiers: Omit<PriceTier, 'id' | 'itemId'>[],
+  ) => void
 }
 
 const MainStoreContext = createContext<MainStoreContextType | undefined>(undefined)
-
-const mockClients: Client[] = [
-  {
-    id: '1',
-    name: 'João Silva',
-    service: 'IPTV Premium',
-    panel: 'Painel 1',
-    phone: '11999999999',
-    expiryDate: new Date(Date.now() + 86400000 * 5).toISOString(),
-    price: 35,
-    cost: 10,
-    status: null,
-    city: 'São Paulo',
-    user: 'joao.silva',
-  },
-  {
-    id: '2',
-    name: 'Maria Souza',
-    service: 'P2P Basic',
-    panel: 'Painel 2',
-    phone: '11988888888',
-    expiryDate: new Date(Date.now() - 86400000 * 2).toISOString(),
-    price: 25,
-    cost: 8,
-    status: null,
-    city: 'Rio de Janeiro',
-    user: 'maria.s',
-  },
-  {
-    id: '3',
-    name: 'Pedro Santos',
-    service: 'IPTV Premium',
-    panel: 'Painel 1',
-    phone: '11977777777',
-    expiryDate: new Date(Date.now() + 86400000 * 15).toISOString(),
-    price: 35,
-    cost: 10,
-    status: 'Devedor',
-    city: 'Belo Horizonte',
-    user: 'pedro.santos',
-  },
-]
-
-const mockBanks: Bank[] = [
-  { id: 'b1', name: 'Nubank', balance: 1250.5 },
-  { id: 'b2', name: 'Itaú', balance: 5400.0 },
-]
-
-const mockTransactions: Transaction[] = [
-  {
-    id: 't1',
-    date: new Date().toISOString(),
-    type: 'Clientes',
-    entry: 35,
-    cost: 10,
-    profit: 25,
-    bankId: 'b1',
-    description: 'Renovação - Ana Costa - IPTV Premium',
-    service: 'IPTV Premium',
-    quantity: 1,
-  },
-]
 
 export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [clients, setClients] = useState<Client[]>(mockClients)
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions)
   const [banks, setBanks] = useState<Bank[]>(mockBanks)
+  const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory)
+  const [tiers, setTiers] = useState<PriceTier[]>(mockTiers)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [serviceFilter, setServiceFilter] = useState('all')
 
-  const addClient = (client: Omit<Client, 'id'>) =>
-    setClients([...clients, { ...client, id: Math.random().toString(36).substr(2, 9) }])
+  const updateBankBalance = (bankId: string, amount: number) =>
+    setBanks((prev) =>
+      prev.map((b) => (b.id === bankId ? { ...b, balance: b.balance + amount } : b)),
+    )
 
-  const updateClient = (id: string, updates: Partial<Client>) =>
-    setClients(clients.map((c) => (c.id === id ? { ...c, ...updates } : c)))
+  const updateStock = (itemId: string, qty: number, isIncrease: boolean) =>
+    setInventory((prev) =>
+      prev.map((i) =>
+        i.id === itemId && i.stockControl
+          ? { ...i, currentStock: i.currentStock + (isIncrease ? qty : -qty) }
+          : i,
+      ),
+    )
 
+  const processTransaction = (payload: ProcessTxPayload) => {
+    const now = new Date().toISOString()
+    const genId = () => Math.random().toString(36).substr(2, 9)
+
+    if (payload.action === 'transfer') {
+      const id1 = genId()
+      const id2 = genId()
+      const tx1: Transaction = {
+        id: id1,
+        date: now,
+        type: 'Transferência Interna',
+        entry: 0,
+        cost: 0,
+        profit: -payload.amount,
+        bankId: payload.fromBank,
+        description: `Transferência enviada - ${payload.desc}`,
+        linkedTransferId: id2,
+      }
+      const tx2: Transaction = {
+        id: id2,
+        date: now,
+        type: 'Transferência Interna',
+        entry: 0,
+        cost: 0,
+        profit: payload.amount,
+        bankId: payload.toBank,
+        description: `Transferência recebida - ${payload.desc}`,
+        linkedTransferId: id1,
+      }
+      setTransactions((prev) => [tx2, tx1, ...prev])
+      updateBankBalance(payload.fromBank, -payload.amount)
+      updateBankBalance(payload.toBank, payload.amount)
+      return
+    }
+
+    if (payload.action === 'reverse') {
+      const orig = transactions.find((t) => t.id === payload.originalId)
+      if (!orig) return
+      const revTx: Transaction = {
+        ...orig,
+        id: genId(),
+        date: now,
+        type: 'Estorno Financeiro',
+        entry: -orig.entry,
+        cost: -orig.cost,
+        profit: -orig.profit,
+        description: `ESTORNO: ${orig.description}`,
+        isReversal: true,
+        originalTxId: orig.id,
+      }
+      setTransactions((prev) => [revTx, ...prev])
+      updateBankBalance(orig.bankId, -orig.profit)
+      if (orig.itemId && orig.qty) {
+        const isSales = ['Venda para Revenda', 'Taxa de Ativação'].includes(orig.type)
+        updateStock(orig.itemId, orig.qty, isSales) // Reverte o estoque
+      }
+      return
+    }
+
+    if (payload.action === 'standard') {
+      const { tx } = payload
+      const pct = tx.entry > 0 ? (tx.profit / tx.entry) * 100 : 0
+      const newTx: Transaction = { ...tx, id: genId(), date: tx.date || now, profitPercentage: pct }
+      setTransactions((prev) => [newTx, ...prev])
+      updateBankBalance(tx.bankId, tx.profit)
+
+      if (tx.itemId && tx.qty) {
+        if (['Venda para Revenda', 'Taxa de Ativação'].includes(tx.type))
+          updateStock(tx.itemId, tx.qty, false)
+        if (['Compra de Estoque', 'Compra de Ativação'].includes(tx.type))
+          updateStock(tx.itemId, tx.qty, true)
+      }
+    }
+  }
+
+  const saveInventoryItem = (
+    item: Omit<InventoryItem, 'id'>,
+    itemTiers: Omit<PriceTier, 'id' | 'itemId'>[],
+  ) => {
+    const id = Math.random().toString(36).substr(2, 9)
+    setInventory((prev) => [{ ...item, id }, ...prev])
+    setTiers((prev) => [
+      ...itemTiers.map((t) => ({ ...t, id: Math.random().toString(36).substr(2, 9), itemId: id })),
+      ...prev,
+    ])
+  }
+
+  const addClient = (c: Omit<Client, 'id'>) =>
+    setClients([...clients, { ...c, id: Math.random().toString(36).substr(2, 9) }])
+  const updateClient = (id: string, u: Partial<Client>) =>
+    setClients(clients.map((c) => (c.id === id ? { ...c, ...u } : c)))
   const deleteClient = (id: string) => updateClient(id, { deleted: true })
+  const restoreClient = (id: string) => updateClient(id, { deleted: false })
+  const hardDeleteClient = (id: string) => setClients((prev) => prev.filter((c) => c.id !== id))
 
-  const addTransaction = (t: Omit<Transaction, 'id'>) => {
-    setTransactions([{ ...t, id: Math.random().toString(36).substr(2, 9) }, ...transactions])
-    setBanks(banks.map((b) => (b.id === t.bankId ? { ...b, balance: b.balance + t.profit } : b)))
+  const importClients = (newClients: Omit<Client, 'id'>[]) => {
+    const clientsWithId = newClients.map((c) => ({
+      ...c,
+      id: Math.random().toString(36).substr(2, 9),
+    }))
+    setClients((prev) => [...clientsWithId, ...prev])
   }
 
   const renewClient = (id: string, days: number) => {
     const client = clients.find((c) => c.id === id)
     if (!client) return
 
-    const isManualAdjust = [-1, 1].includes(days)
     let baseDate = new Date(client.expiryDate)
+    const isManualAdjust = [-1, 1].includes(days)
 
     if (isManualAdjust) {
       baseDate.setDate(baseDate.getDate() + days)
@@ -164,66 +179,52 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const currentStatus = getClientStatus(client.expiryDate, client.status)
-    const lastDate = client.expiryDate
-
-    if (currentStatus === 'Vencido' || currentStatus === 'Vencido +30d') {
-      baseDate = new Date()
-    }
+    if (currentStatus === 'Vencido' || currentStatus === 'Vencido +30d') baseDate = new Date()
     baseDate.setDate(baseDate.getDate() + days)
 
-    addTransaction({
-      date: new Date().toISOString(),
-      type: 'Clientes',
-      entry: client.price,
-      cost: client.cost,
-      profit: client.price - client.cost,
-      bankId: banks[0]?.id || '',
-      description: `Renovação - ${client.name} - ${client.service}`,
-      clientId: client.id,
-      service: client.service,
-      quantity: 1,
-    })
-
-    const newStatus = client.status === 'Devedor' ? 'Devedor' : null
+    if ([15, 30, 31].includes(days)) {
+      processTransaction({
+        action: 'standard',
+        tx: {
+          type: 'Renovação de Cliente',
+          entry: client.price,
+          cost: client.cost,
+          profit: client.price - client.cost,
+          bankId: banks[0]?.id || '',
+          description: `Renovação - ${client.name} - ${client.service}`,
+          clientId: client.id,
+          service: client.service,
+          qty: 1,
+        },
+      })
+    }
     updateClient(id, {
       expiryDate: baseDate.toISOString(),
-      lastExpiryDate: lastDate,
-      status: newStatus,
+      lastExpiryDate: client.expiryDate,
+      status: client.status === 'Devedor' ? 'Devedor' : null,
     })
   }
 
-  const importClients = (newClients: Omit<Client, 'id'>[]) => {
-    const clientsWithId = newClients.map((c) => ({
-      ...c,
-      id: Math.random().toString(36).substr(2, 9),
-    }))
-    setClients([...clientsWithId, ...clients])
-  }
-
-  const filteredClients = useMemo(() => {
-    return clients.filter((c) => {
-      if (c.deleted) return false
-      const st = getClientStatus(c.expiryDate, c.status)
-      if (statusFilter !== 'all' && st !== statusFilter) return false
-      if (serviceFilter !== 'all' && c.service !== serviceFilter) return false
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase()
-        return (
-          c.name.toLowerCase().includes(q) ||
-          c.phone.includes(q) ||
-          c.service.toLowerCase().includes(q) ||
-          st.toLowerCase().includes(q)
-        )
-      }
-      return true
-    })
-  }, [clients, searchQuery, statusFilter, serviceFilter])
-
-  const filteredTransactions = useMemo(() => {
-    if (!searchQuery && statusFilter === 'all' && serviceFilter === 'all') return transactions
-    const clientIds = new Set(filteredClients.map((c) => c.id))
-    return transactions.filter((t) => (t.clientId ? clientIds.has(t.clientId) : true))
-  }, [transactions, filteredClients, searchQuery, statusFilter, serviceFilter])
+  const filteredClients = useMemo(
+    () =>
+      clients.filter((c) => {
+        if (c.deleted) return false
+        const st = getClientStatus(c.expiryDate, c.status)
+        if (statusFilter !== 'all' && st !== statusFilter) return false
+        if (serviceFilter !== 'all' && c.service !== serviceFilter) return false
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase()
+          return (
+            c.name.toLowerCase().includes(q) ||
+            c.phone.includes(q) ||
+            c.service.toLowerCase().includes(q) ||
+            st.toLowerCase().includes(q)
+          )
+        }
+        return true
+      }),
+    [clients, searchQuery, statusFilter, serviceFilter],
+  )
 
   return (
     <MainStoreContext.Provider
@@ -231,6 +232,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         clients,
         transactions,
         banks,
+        inventory,
+        tiers,
         searchQuery,
         setSearchQuery,
         statusFilter,
@@ -238,13 +241,15 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         serviceFilter,
         setServiceFilter,
         filteredClients,
-        filteredTransactions,
         addClient,
         updateClient,
         deleteClient,
-        renewClient,
-        addTransaction,
+        restoreClient,
+        hardDeleteClient,
         importClients,
+        renewClient,
+        processTransaction,
+        saveInventoryItem,
       }}
     >
       {children}

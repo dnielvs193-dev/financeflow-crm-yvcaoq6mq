@@ -2,19 +2,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { formatCurrency } from '@/lib/formatters'
 import useMainStore from '@/stores/useMainStore'
-import { Building2, CheckCircle2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Building2, PlusCircle } from 'lucide-react'
 
 export function OperationalCards() {
-  const { banks } = useMainStore()
-  const dailyGoal = 500
-  const currentDaily = 350
+  const { banks, transactions } = useMainStore()
+
+  const dailyGoal = 1000
+  const currentDaily = transactions
+    .filter(
+      (t) =>
+        new Date(t.date).toDateString() === new Date().toDateString() &&
+        ['Renovação de Cliente', 'Venda para Revenda'].includes(t.type),
+    )
+    .reduce((a, c) => a + c.entry, 0)
+
+  const outrasEntradasTotal = transactions
+    .filter((t) => t.type === 'Outras Entradas')
+    .reduce((a, c) => a + c.entry, 0)
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card className="border-none shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Meta Diária</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Meta Comercial Diária
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
@@ -25,7 +37,7 @@ export function OperationalCards() {
           </div>
           <Progress value={(currentDaily / dailyGoal) * 100} className="mt-4 h-2" />
           <p className="text-xs text-muted-foreground mt-2">
-            {Math.round((currentDaily / dailyGoal) * 100)}% concluído
+            {Math.round((currentDaily / dailyGoal) * 100)}% concluído hoje
           </p>
         </CardContent>
       </Card>
@@ -33,7 +45,7 @@ export function OperationalCards() {
       <Card className="border-none shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Saldos Bancários
+            Saldos Bancários (Auditado)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -54,25 +66,20 @@ export function OperationalCards() {
       <Card className="border-none shadow-sm md:col-span-2 lg:col-span-1">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Contas a Pagar (Semana)
+            Indicador Gerencial Específico
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
+          <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/10">
             <div>
-              <p className="text-sm font-medium">Servidor Dedicado</p>
-              <p className="text-xs text-muted-foreground">Vence amanhã</p>
+              <p className="text-sm font-medium flex items-center gap-1">
+                <PlusCircle className="h-3.5 w-3.5 text-primary" /> Outras Entradas
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Total Acumulado</p>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="font-bold text-sm text-destructive">{formatCurrency(350)}</span>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-              >
-                <CheckCircle2 className="h-5 w-5" />
-              </Button>
-            </div>
+            <span className="font-bold text-lg text-primary">
+              {formatCurrency(outrasEntradasTotal)}
+            </span>
           </div>
         </CardContent>
       </Card>

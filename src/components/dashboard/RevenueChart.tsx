@@ -1,16 +1,21 @@
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { Transaction } from '@/types'
 
 const chartConfig = {
   revenue: { label: 'Faturamento', color: 'hsl(var(--secondary))' },
-  profit: { label: 'Lucro', color: 'hsl(var(--primary))' },
+  profit: { label: 'Lucro Líquido', color: 'hsl(var(--primary))' },
 }
 
-export function RevenueChart({ transactions = [] }: { transactions?: any[] }) {
-  const baseRevenue = transactions.reduce((a, c) => a + c.entry, 0)
-  const baseProfit = transactions.reduce((a, c) => a + c.profit, 0)
+export function RevenueChart({ transactions = [] }: { transactions?: Transaction[] }) {
+  const commTransactions = transactions.filter((t) =>
+    ['Renovação de Cliente', 'Venda para Revenda', 'Taxa de Ativação'].includes(t.type),
+  )
+  const baseRevenue = commTransactions.reduce((a, c) => a + c.entry, 0)
+  const baseProfit = commTransactions.reduce((a, c) => a + c.profit, 0)
 
+  // Use dynamic mocked daily spread based on real data total just to give visual life
   const chartData =
     baseRevenue > 0
       ? [
@@ -35,8 +40,10 @@ export function RevenueChart({ transactions = [] }: { transactions?: any[] }) {
   return (
     <Card className="col-span-1 lg:col-span-2 border-none shadow-sm">
       <CardHeader>
-        <CardTitle>Visão Financeira</CardTitle>
-        <CardDescription>Faturamento vs Lucro nos últimos 7 dias</CardDescription>
+        <CardTitle>Visão Comercial (Receitas Diretas)</CardTitle>
+        <CardDescription>
+          Faturamento vs Lucro nos últimos 7 dias (Exclui operações internas)
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
