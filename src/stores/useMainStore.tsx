@@ -92,16 +92,88 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
     return mockClients
   })
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions)
-  const [banks, setBanks] = useState<Bank[]>(mockBanks)
-  const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory)
-  const [tiers, setTiers] = useState<PriceTier[]>(mockTiers)
-  const [resellers, setResellers] = useState<Reseller[]>(mockResellers)
-  const [payables, setPayables] = useState<Payable[]>(mockPayables)
+
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:transactions')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse transactions from local storage', e)
+    }
+    return mockTransactions
+  })
+
+  const [banks, setBanks] = useState<Bank[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:banks')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse banks from local storage', e)
+    }
+    return mockBanks
+  })
+
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:inventory')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse inventory from local storage', e)
+    }
+    return mockInventory
+  })
+
+  const [tiers, setTiers] = useState<PriceTier[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:tiers')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse tiers from local storage', e)
+    }
+    return mockTiers
+  })
+
+  const [resellers, setResellers] = useState<Reseller[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:resellers')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse resellers from local storage', e)
+    }
+    return mockResellers
+  })
+
+  const [payables, setPayables] = useState<Payable[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:payables')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse payables from local storage', e)
+    }
+    return mockPayables
+  })
 
   useEffect(() => {
     localStorage.setItem('@financeflow:clients', JSON.stringify(clients))
   }, [clients])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:transactions', JSON.stringify(transactions))
+  }, [transactions])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:banks', JSON.stringify(banks))
+  }, [banks])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:inventory', JSON.stringify(inventory))
+  }, [inventory])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:tiers', JSON.stringify(tiers))
+  }, [tiers])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:resellers', JSON.stringify(resellers))
+  }, [resellers])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:payables', JSON.stringify(payables))
+  }, [payables])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
