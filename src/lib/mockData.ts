@@ -104,12 +104,12 @@ const parseDateString = (ds: string) => {
   return new Date().toISOString()
 }
 
-const lines = rawCsv.split('\n').filter(Boolean)
-const headers = lines[0].split(';')
+const lines = rawCsv.split('\n').filter((l) => l.trim().length > 0)
+const headers = lines[0].split(';').map((h) => h.trim())
 
 const importedImageClients: Client[] = lines.slice(1).map((line, idx) => {
   const v = line.split(';')
-  const getCol = (name: string) => v[headers.indexOf(name)] || ''
+  const getCol = (name: string) => v[headers.indexOf(name)]?.trim() || ''
 
   const priceStr = getCol('Preço')
   const costStr = getCol('Custo')
@@ -117,9 +117,22 @@ const importedImageClients: Client[] = lines.slice(1).map((line, idx) => {
   let st = getCol('Status')
   let statusVal: any = null
   let isDeleted = false
+
   if (st === 'Devedor') statusVal = 'Devedor'
   if (st === 'Vencido +30d' || st === 'Vencido +30') statusVal = 'Vencido +30d'
-  if (st === 'Excluído' || st === 'Excluido') isDeleted = true
+  if (st === 'Excluído' || st === 'Excluido') {
+    statusVal = 'Excluído'
+    isDeleted = false
+  }
+
+  const parseCurrency = (val: string) => {
+    if (!val) return 0
+    let str = val.trim().replace(/R\$\s*/g, '')
+    if (/,/.test(str)) {
+      str = str.replace(/\./g, '').replace(',', '.')
+    }
+    return parseFloat(str) || 0
+  }
 
   return {
     id: `img_import_${idx}`,
@@ -136,8 +149,8 @@ const importedImageClients: Client[] = lines.slice(1).map((line, idx) => {
     city: getCol('Cidade'),
     mac: getCol('MAC'),
     dkey: getCol('D_Key'),
-    price: parseFloat(priceStr.replace(',', '.')) || 0,
-    cost: parseFloat(costStr.replace(',', '.')) || 0,
+    price: parseCurrency(priceStr),
+    cost: parseCurrency(costStr),
   }
 })
 

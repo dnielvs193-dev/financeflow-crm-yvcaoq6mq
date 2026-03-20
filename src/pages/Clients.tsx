@@ -112,6 +112,7 @@ export default function Clients() {
             <SelectItem value="Vencido">Vencido</SelectItem>
             <SelectItem value="Devedor">Devedor</SelectItem>
             <SelectItem value="Vencido +30d">Vencido +30d</SelectItem>
+            <SelectItem value="Excluído">Excluído</SelectItem>
           </SelectContent>
         </Select>
         <Select value={serviceFilter} onValueChange={setServiceFilter}>

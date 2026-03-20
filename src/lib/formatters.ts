@@ -17,6 +17,7 @@ export const formatDate = (dateString: string) => {
 export const getClientStatus = (expiryDate: string, manualStatus?: string | null) => {
   if (manualStatus === 'Devedor') return 'Devedor'
   if (manualStatus === 'Vencido +30d') return 'Vencido +30d'
+  if (manualStatus === 'Excluído') return 'Excluído'
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)

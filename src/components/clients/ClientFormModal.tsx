@@ -451,6 +451,7 @@ export function ClientFormModal({
                     <SelectItem value="Automático">Automático (por data)</SelectItem>
                     <SelectItem value="Devedor">Devedor (Manual)</SelectItem>
                     <SelectItem value="Vencido +30d">Vencido +30d (Manual)</SelectItem>
+                    <SelectItem value="Excluído">Excluído (Manual)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

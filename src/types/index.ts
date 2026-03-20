@@ -5,6 +5,7 @@ export type ClientStatus =
   | 'Vence Amanhã'
   | 'Vencido'
   | 'Ativo'
+  | 'Excluído'
   | null
 
 export type Client = {

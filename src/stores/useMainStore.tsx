@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
+import { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react'
 import { Client, Transaction, Bank, InventoryItem, PriceTier, Reseller, Payable } from '@/types'
 import { getClientStatus } from '@/lib/formatters'
 import {
@@ -82,13 +82,25 @@ type MainStoreContextType = {
 const MainStoreContext = createContext<MainStoreContextType | undefined>(undefined)
 
 export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
-  const [clients, setClients] = useState<Client[]>(mockClients)
+  const [clients, setClients] = useState<Client[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:clients')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse clients from local storage', e)
+    }
+    return mockClients
+  })
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions)
   const [banks, setBanks] = useState<Bank[]>(mockBanks)
   const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory)
   const [tiers, setTiers] = useState<PriceTier[]>(mockTiers)
   const [resellers, setResellers] = useState<Reseller[]>(mockResellers)
   const [payables, setPayables] = useState<Payable[]>(mockPayables)
+
+  useEffect(() => {
+    localStorage.setItem('@financeflow:clients', JSON.stringify(clients))
+  }, [clients])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')

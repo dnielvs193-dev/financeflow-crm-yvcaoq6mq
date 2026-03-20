@@ -105,13 +105,20 @@ export function ClientDataActions() {
           return parseFloat(str) || 0
         }
 
-        const price = priceKey ? parseCurrency(row[priceKey]) : 0
+        const price =
+          priceKey && row[priceKey] !== undefined && row[priceKey].trim() !== ''
+            ? parseCurrency(row[priceKey])
+            : 0
 
-        const srvName = serviceKey && row[serviceKey] ? row[serviceKey] : 'Padrão'
+        const srvName = serviceKey && row[serviceKey] ? row[serviceKey].trim() : 'Padrão'
         const invItem = inventory.find((i) => i.name.toLowerCase() === srvName.toLowerCase())
 
         const cost =
-          costKey && row[costKey] ? parseCurrency(row[costKey]) : invItem ? invItem.unitCost : 0
+          costKey && row[costKey] !== undefined && row[costKey].trim() !== ''
+            ? parseCurrency(row[costKey])
+            : invItem
+              ? invItem.unitCost
+              : 0
 
         const statusRaw = statusKey ? row[statusKey] : ''
         let parsedStatus = null
@@ -121,26 +128,28 @@ export function ClientDataActions() {
         if (
           statusRaw.toLowerCase().includes('excluido') ||
           statusRaw.toLowerCase().includes('excluído')
-        )
-          isDeleted = true
+        ) {
+          parsedStatus = 'Excluído'
+          isDeleted = false // Keep them visible as per acceptance criteria
+        }
 
         return {
-          name: nameKey ? row[nameKey] : 'Desconhecido',
-          phone: phoneKey ? row[phoneKey] : '',
+          name: nameKey ? row[nameKey].trim() : 'Desconhecido',
+          phone: phoneKey ? row[phoneKey].trim() : '',
           service: srvName,
           price: price,
           cost: cost,
           expiryDate: dateKey ? parseDate(row[dateKey]) : new Date().toISOString(),
           status: parsedStatus as any,
           deleted: isDeleted,
-          user: userKey ? row[userKey] : '',
-          password: passKey ? row[passKey] : '',
-          city: cityKey ? row[cityKey] : '',
-          mac: macKey ? row[macKey] : '',
-          dkey: dkeyKey ? row[dkeyKey] : '',
-          panel: panelKey ? row[panelKey] : '',
-          obs1: obs1Key ? row[obs1Key] : '',
-          obs2: obs2Key ? row[obs2Key] : '',
+          user: userKey ? row[userKey].trim() : '',
+          password: passKey ? row[passKey].trim() : '',
+          city: cityKey ? row[cityKey].trim() : '',
+          mac: macKey ? row[macKey].trim() : '',
+          dkey: dkeyKey ? row[dkeyKey].trim() : '',
+          panel: panelKey ? row[panelKey].trim() : '',
+          obs1: obs1Key ? row[obs1Key].trim() : '',
+          obs2: obs2Key ? row[obs2Key].trim() : '',
         }
       })
 
