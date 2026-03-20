@@ -75,17 +75,27 @@ export function ClientDataActions() {
       const mappedClients = parsed.map((row) => {
         const findKey = (keys: string[]) => headers.find((h) => keys.some((k) => h.includes(k)))
         const nameKey = findKey(['nome', 'name'])
-        const phoneKey = findKey(['telefone', 'celular', 'whatsapp', 'phone'])
+        const phoneKey = findKey(['whatsapp', 'telefone', 'celular', 'phone'])
         const serviceKey = findKey(['serviço', 'servico', 'service'])
-        const priceKey = findKey(['mensalidade', 'valor', 'price'])
+        const statusKey = findKey(['status'])
+        const passKey = findKey(['senha', 'password'])
         const dateKey = findKey(['vencimento', 'data', 'expiry'])
         const userKey = findKey(['usuário', 'usuario', 'user'])
-        const passKey = findKey(['senha', 'password'])
         const cityKey = findKey(['cidade', 'city'])
-        const obsKey = findKey(['observação', 'observacao', 'obs'])
+        const macKey = findKey(['mac'])
+        const dkeyKey = findKey(['d_key', 'dkey'])
+        const priceKey = findKey(['preço', 'preco', 'mensalidade', 'valor', 'price', 'preço m'])
+        const panelKey = findKey(['painel', 'panel'])
+        const obs1Key = findKey(['obs1', 'observação', 'observacao', 'obs'])
+        const obs2Key = findKey(['obs2'])
 
         const priceStr = priceKey ? row[priceKey] : '0'
         const price = parseFloat(priceStr.replace('R$', '').replace(',', '.').trim()) || 0
+
+        const statusRaw = statusKey ? row[statusKey] : ''
+        let parsedStatus = null
+        if (statusRaw.toLowerCase().includes('devedor')) parsedStatus = 'Devedor'
+        if (statusRaw.toLowerCase().includes('+30')) parsedStatus = 'Vencido +30d'
 
         return {
           name: nameKey ? row[nameKey] : 'Desconhecido',
@@ -94,11 +104,15 @@ export function ClientDataActions() {
           price: price,
           cost: 0,
           expiryDate: dateKey ? parseDate(row[dateKey]) : new Date().toISOString(),
-          status: null,
+          status: parsedStatus as any,
           user: userKey ? row[userKey] : '',
           password: passKey ? row[passKey] : '',
           city: cityKey ? row[cityKey] : '',
-          obs1: obsKey ? row[obsKey] : '',
+          mac: macKey ? row[macKey] : '',
+          dkey: dkeyKey ? row[dkeyKey] : '',
+          panel: panelKey ? row[panelKey] : '',
+          obs1: obs1Key ? row[obs1Key] : '',
+          obs2: obs2Key ? row[obs2Key] : '',
         }
       })
 
@@ -149,8 +163,8 @@ export function ClientDataActions() {
                 <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-4" />
                 <p className="text-sm font-medium mb-1">Clique ou arraste seu arquivo .CSV aqui</p>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Colunas suportadas: nome, whatsapp, serviço, mensalidade, vencimento, usuário,
-                  senha, cidade, observações
+                  Colunas suportadas: Nome, WhatsApp, Serviço, Preço M, Vencimento, Usuário, Senha,
+                  Cidade, MAC, D_Key, Painel, Obs1, Obs2
                 </p>
                 <Button variant="secondary" className="pointer-events-none">
                   Selecionar Arquivo
@@ -169,9 +183,8 @@ export function ClientDataActions() {
                   <strong className="text-lg">{previewData.length}</strong>
                 </div>
                 <div className="text-xs text-muted-foreground pt-1">
-                  Os valores da coluna <strong>Mensalidade</strong> foram mapeados para serem o
-                  preço de faturamento de futuras renovações. Os custos serão puxados
-                  automaticamente do inventário baseado no Serviço.
+                  Os valores importados como <strong>Preço M</strong> e <strong>Serviço</strong>{' '}
+                  serão utilizados automaticamente em futuras renovações.
                 </div>
               </div>
               <Button onClick={handleConfirmImport} className="w-full">

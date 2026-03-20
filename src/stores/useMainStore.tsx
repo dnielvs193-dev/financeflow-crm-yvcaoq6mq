@@ -45,6 +45,8 @@ type MainStoreContextType = {
   resellerCityFilter: string
   setResellerCityFilter: (s: string) => void
   filteredResellers: Reseller[]
+  activePayables: boolean
+  setActivePayables: (v: boolean) => void
   addClient: (c: Omit<Client, 'id'>) => void
   updateClient: (id: string, u: Partial<Client>) => void
   deleteClient: (id: string) => void
@@ -60,6 +62,9 @@ type MainStoreContextType = {
   addReseller: (r: Omit<Reseller, 'id' | 'registrationDate'>) => void
   updateReseller: (id: string, updates: Partial<Reseller>) => void
   deleteReseller: (id: string) => void
+  addBank: (b: Omit<Bank, 'id'>) => void
+  updateBank: (id: string, u: Partial<Bank>) => void
+  deleteBank: (id: string) => void
 }
 
 const MainStoreContext = createContext<MainStoreContextType | undefined>(undefined)
@@ -85,6 +90,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [resellerStatusFilter, setResellerStatusFilter] = useState('all')
   const [resellerCityFilter, setResellerCityFilter] = useState('all')
 
+  const [activePayables, setActivePayables] = useState(false)
+
   const updateBankBalance = (bankId: string, amount: number) =>
     setBanks((prev) =>
       prev.map((b) => (b.id === bankId ? { ...b, balance: b.balance + amount } : b)),
@@ -98,6 +105,31 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
           : i,
       ),
     )
+
+  const addBank = (b: Omit<Bank, 'id'>) => {
+    let newBanks = [...banks]
+    if (b.isDefault)
+      newBanks = newBanks.map((x) => (x.type === b.type ? { ...x, isDefault: false } : x))
+    setBanks([...newBanks, { ...b, id: Math.random().toString(36).substr(2, 9) }])
+  }
+
+  const updateBank = (id: string, u: Partial<Bank>) => {
+    setBanks((prev) => {
+      let updated = [...prev]
+      const current = updated.find((x) => x.id === id)
+      const isNowDefault = u.isDefault !== undefined ? u.isDefault : current?.isDefault
+      const typeNow = u.type !== undefined ? u.type : current?.type
+
+      if (isNowDefault) {
+        updated = updated.map((x) =>
+          x.type === typeNow && x.id !== id ? { ...x, isDefault: false } : x,
+        )
+      }
+      return updated.map((b) => (b.id === id ? { ...b, ...u } : b))
+    })
+  }
+
+  const deleteBank = (id: string) => setBanks((prev) => prev.filter((b) => b.id !== id))
 
   const processTransaction = (payload: ProcessTxPayload) => {
     const now = new Date().toISOString()
@@ -150,7 +182,19 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         originalTxId: orig.id,
       }
       setTransactions((prev) => [revTx, ...prev])
-      updateBankBalance(orig.bankId, -orig.profit)
+
+      if (orig.splitDistribution) {
+        if (orig.splitDistribution.costBankId)
+          updateBankBalance(orig.splitDistribution.costBankId, -orig.splitDistribution.costAmount)
+        if (orig.splitDistribution.profitBankId)
+          updateBankBalance(
+            orig.splitDistribution.profitBankId,
+            -orig.splitDistribution.profitAmount,
+          )
+      } else {
+        updateBankBalance(orig.bankId, -orig.profit)
+      }
+
       if (orig.itemId && orig.qty) {
         const isSales = ['Venda para Revenda', 'Taxa de Ativação', 'Renovação de Cliente'].includes(
           orig.type,
@@ -164,12 +208,37 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       const { tx } = payload
       const pct = tx.entry > 0 ? (tx.profit / tx.entry) * 100 : 0
       const newTx: Transaction = { ...tx, id: genId(), date: tx.date || now, profitPercentage: pct }
+
+      const isSale = ['Venda para Revenda', 'Taxa de Ativação', 'Renovação de Cliente'].includes(
+        tx.type,
+      )
+
+      if (isSale && (tx.entry > 0 || tx.cost > 0)) {
+        const defaultCusto = banks.find((b) => b.type === 'Custo' && b.isDefault)
+        const defaultDisponivel = banks.find((b) => b.type === 'Disponível' && b.isDefault)
+        const defaultContas = banks.find((b) => b.type === 'Contas' && b.isDefault)
+
+        const targetCostBankId = defaultCusto?.id || tx.bankId
+        const targetProfitBankId =
+          activePayables && defaultContas ? defaultContas.id : defaultDisponivel?.id || tx.bankId
+
+        updateBankBalance(targetCostBankId, tx.cost)
+        updateBankBalance(targetProfitBankId, tx.profit)
+
+        newTx.splitDistribution = {
+          costBankId: targetCostBankId,
+          profitBankId: targetProfitBankId,
+          costAmount: tx.cost,
+          profitAmount: tx.profit,
+        }
+      } else {
+        updateBankBalance(tx.bankId, tx.profit)
+      }
+
       setTransactions((prev) => [newTx, ...prev])
-      updateBankBalance(tx.bankId, tx.profit)
 
       if (tx.itemId && tx.qty) {
-        if (['Venda para Revenda', 'Taxa de Ativação', 'Renovação de Cliente'].includes(tx.type))
-          updateStock(tx.itemId, tx.qty, false)
+        if (isSale) updateStock(tx.itemId, tx.qty, false)
         if (['Compra de Estoque', 'Compra de Ativação'].includes(tx.type))
           updateStock(tx.itemId, tx.qty, true)
       }
@@ -361,6 +430,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         resellerCityFilter,
         setResellerCityFilter,
         filteredResellers,
+        activePayables,
+        setActivePayables,
         addClient,
         updateClient,
         deleteClient,
@@ -373,6 +444,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         addReseller,
         updateReseller,
         deleteReseller,
+        addBank,
+        updateBank,
+        deleteBank,
       }}
     >
       {children}

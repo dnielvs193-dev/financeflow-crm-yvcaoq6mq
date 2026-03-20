@@ -32,7 +32,10 @@ export function ResellerSellModal({ reseller }: { reseller: Reseller }) {
   const [bankId, setBankId] = useState('')
 
   const revendaItems = useMemo(
-    () => inventory.filter((i) => i.category === 'Revenda' && i.status === 'Ativo'),
+    () =>
+      inventory.filter(
+        (i) => (i.category === 'Revenda' || i.category === 'Ativação') && i.status === 'Ativo',
+      ),
     [inventory],
   )
 
@@ -60,7 +63,7 @@ export function ResellerSellModal({ reseller }: { reseller: Reseller }) {
     processTransaction({
       action: 'standard',
       tx: {
-        type: 'Venda para Revenda',
+        type: item.category === 'Ativação' ? 'Taxa de Ativação' : 'Venda para Revenda',
         entry: pricing.totalPrice,
         cost: pricing.totalCost,
         profit: pricing.totalPrice - pricing.totalCost,
@@ -91,7 +94,7 @@ export function ResellerSellModal({ reseller }: { reseller: Reseller }) {
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label>Serviço (Apenas Revenda)</Label>
+            <Label>Serviço / Ativação</Label>
             <Select value={itemId} onValueChange={setItemId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um serviço" />
@@ -99,12 +102,12 @@ export function ResellerSellModal({ reseller }: { reseller: Reseller }) {
               <SelectContent>
                 {revendaItems.map((i) => (
                   <SelectItem key={i.id} value={i.id}>
-                    {i.name}
+                    {i.name} ({i.category})
                   </SelectItem>
                 ))}
                 {revendaItems.length === 0 && (
                   <SelectItem value="none" disabled>
-                    Nenhum serviço de revenda ativo
+                    Nenhum item ativo
                   </SelectItem>
                 )}
               </SelectContent>
@@ -122,7 +125,7 @@ export function ResellerSellModal({ reseller }: { reseller: Reseller }) {
           </div>
 
           <div className="grid gap-2">
-            <Label>Conta Recebedora</Label>
+            <Label>Conta Recebedora (Principal)</Label>
             <Select value={bankId} onValueChange={setBankId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a conta bancária" />
@@ -135,6 +138,10 @@ export function ResellerSellModal({ reseller }: { reseller: Reseller }) {
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              O valor será distribuído automaticamente entre as contas Padrão configuradas, caso
+              existam.
+            </p>
           </div>
 
           {pricing ? (

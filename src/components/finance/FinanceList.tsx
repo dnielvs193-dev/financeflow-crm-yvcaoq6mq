@@ -56,7 +56,7 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
             <TableHead>Data / Tipo</TableHead>
             <TableHead>Descrição / Obs</TableHead>
             <TableHead>Item / Serviço / Faixa</TableHead>
-            <TableHead>Banco</TableHead>
+            <TableHead>Banco(s)</TableHead>
             <TableHead className="text-right">Finanças</TableHead>
             <TableHead className="text-right w-[80px]">Audit</TableHead>
           </TableRow>
@@ -99,29 +99,58 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="text-muted-foreground text-sm">
-                  {banks.find((b) => b.id === t.bankId)?.name}
+                <TableCell className="text-muted-foreground text-xs font-medium">
+                  {t.splitDistribution ? (
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-orange-600">
+                        Custo ➔{' '}
+                        {banks.find((b) => b.id === t.splitDistribution?.costBankId)?.name || 'N/A'}
+                      </span>
+                      <span className="text-green-600">
+                        Lucro ➔{' '}
+                        {banks.find((b) => b.id === t.splitDistribution?.profitBankId)?.name ||
+                          'N/A'}
+                      </span>
+                    </div>
+                  ) : (
+                    <span>{banks.find((b) => b.id === t.bankId)?.name}</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex flex-col items-end gap-0.5">
                     {t.entry > 0 && (
                       <div className="text-sm font-medium">Ent: {formatCurrency(t.entry)}</div>
                     )}
-                    {t.cost > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        Custo: {formatCurrency(t.cost)}
-                      </div>
-                    )}
-                    {(t.entry > 0 || t.cost > 0) && (
-                      <div
-                        className={`text-sm font-bold ${t.profit >= 0 ? 'text-primary' : 'text-destructive'}`}
-                      >
-                        {t.profit > 0 ? '+' : ''}
-                        {formatCurrency(t.profit)}
-                      </div>
+                    {t.splitDistribution ? (
+                      <>
+                        {t.splitDistribution.costAmount > 0 && (
+                          <div className="text-[10px] text-orange-600 bg-orange-500/10 px-1 rounded">
+                            Custo: {formatCurrency(t.splitDistribution.costAmount)}
+                          </div>
+                        )}
+                        <div className="text-[10px] text-green-600 bg-green-500/10 px-1 rounded">
+                          Lucro: {formatCurrency(t.splitDistribution.profitAmount)}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {t.cost > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            Custo: {formatCurrency(t.cost)}
+                          </div>
+                        )}
+                        {(t.entry > 0 || t.cost > 0) && (
+                          <div
+                            className={`text-sm font-bold ${t.profit >= 0 ? 'text-primary' : 'text-destructive'}`}
+                          >
+                            {t.profit > 0 ? '+' : ''}
+                            {formatCurrency(t.profit)}
+                          </div>
+                        )}
+                      </>
                     )}
                     {t.profitPercentage !== undefined && t.profitPercentage > 0 && (
-                      <div className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-medium w-fit">
+                      <div className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-medium w-fit mt-0.5">
                         {t.profitPercentage.toFixed(0)}% mg
                       </div>
                     )}

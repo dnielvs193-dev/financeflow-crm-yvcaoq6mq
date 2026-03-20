@@ -87,7 +87,7 @@ export function ClientList() {
       />
 
       <div className="hidden lg:block rounded-md border bg-card overflow-x-auto">
-        <Table className="min-w-[1000px]">
+        <Table className="min-w-[1200px]">
           <TableHeader>
             <TableRow>
               <TableHead
@@ -96,7 +96,7 @@ export function ClientList() {
               >
                 Cliente {sortCol === 'name' && (sortDesc ? '↓' : '↑')}
               </TableHead>
-              <TableHead>Acesso</TableHead>
+              <TableHead>Credenciais</TableHead>
               <TableHead
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handleSort('service')}
@@ -104,12 +104,11 @@ export function ClientList() {
                 Serviço / Painel {sortCol === 'service' && (sortDesc ? '↓' : '↑')}
               </TableHead>
               <TableHead
-                className="cursor-pointer hover:bg-muted/50"
+                className="cursor-pointer hover:bg-muted/50 w-[180px]"
                 onClick={() => handleSort('expiryDate')}
               >
-                Status / Venc. {sortCol === 'expiryDate' && (sortDesc ? '↓' : '↑')}
+                Financeiro {sortCol === 'expiryDate' && (sortDesc ? '↓' : '↑')}
               </TableHead>
-              <TableHead>Financeiro</TableHead>
               <TableHead className="w-[280px]">Gestão de Vencimento</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -122,31 +121,42 @@ export function ClientList() {
                   <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                     <Phone className="h-3 w-3" /> {client.phone}
                   </div>
+                  {client.city && (
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{client.city}</div>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm">{client.user || '-'}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {client.password ? '***' : '-'}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-medium">{client.service}</div>
-                  <div className="text-xs text-muted-foreground">{client.panel || '-'}</div>
-                </TableCell>
-                <TableCell>
-                  <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
-                  <div className="text-xs font-medium mt-1">{formatDate(client.expiryDate)}</div>
-                  {client.lastExpiryDate && (
-                    <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <History className="h-3 w-3" /> Antigo: {formatDate(client.lastExpiryDate)}
+                  <div className="text-sm font-medium">{client.user || '-'}</div>
+                  <div className="text-xs text-muted-foreground">{client.password || '-'}</div>
+                  {(client.mac || client.dkey) && (
+                    <div className="text-[10px] font-mono mt-1 text-muted-foreground flex flex-col">
+                      {client.mac && <span>MAC: {client.mac}</span>}
+                      {client.dkey && <span>DK: {client.dkey}</span>}
                     </div>
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium text-primary">{formatCurrency(client.price)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Custo: {formatCurrency(client.cost)}
+                  <div className="text-sm font-bold text-primary">{client.service}</div>
+                  <div className="text-xs text-muted-foreground mb-1">{client.panel || '-'}</div>
+                  <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground">Vence:</span>
+                    <span className="font-medium">{formatDate(client.expiryDate)}</span>
                   </div>
+                  <div className="flex justify-between items-center text-xs mt-1">
+                    <span className="text-muted-foreground">Preço:</span>
+                    <span className="font-medium text-primary">{formatCurrency(client.price)}</span>
+                  </div>
+                  {(client.obs1 || client.obs2) && (
+                    <div
+                      className="text-[10px] text-muted-foreground mt-1.5 p-1 bg-muted/30 rounded border max-w-[150px] truncate"
+                      title={`${client.obs1 || ''} ${client.obs2 || ''}`}
+                    >
+                      {client.obs1} {client.obs2}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
@@ -213,7 +223,7 @@ export function ClientList() {
             ))}
             {sortedClients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Nenhum cliente encontrado.
                 </TableCell>
               </TableRow>
@@ -229,7 +239,9 @@ export function ClientList() {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h3 className="font-semibold">{client.name}</h3>
-                  <p className="text-xs text-muted-foreground">{client.service}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {client.service} - {client.panel}
+                  </p>
                 </div>
                 <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
               </div>
@@ -241,7 +253,7 @@ export function ClientList() {
                   </div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground text-xs">Preço</span>
+                  <span className="text-muted-foreground text-xs">Preço M</span>
                   <div className="font-medium text-primary">{formatCurrency(client.price)}</div>
                 </div>
               </div>

@@ -53,12 +53,22 @@ export type Transaction = {
   isReversal?: boolean
   originalTxId?: string
   linkedTransferId?: string
+  splitDistribution?: {
+    costBankId?: string
+    profitBankId?: string
+    costAmount: number
+    profitAmount: number
+  }
 }
+
+export type BankType = 'Custo' | 'Disponível' | 'Contas' | 'Geral'
 
 export type Bank = {
   id: string
   name: string
   balance: number
+  type: BankType
+  isDefault: boolean
 }
 
 export type InventoryCategory = 'Revenda' | 'Ativação' | 'Serviço Recorrente'

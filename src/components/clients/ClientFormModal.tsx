@@ -34,13 +34,29 @@ export function ClientFormModal({
   onOpenChange: setControlledOpen,
   trigger,
 }: ClientFormModalProps) {
-  const { addClient, updateClient } = useMainStore()
+  const { addClient, updateClient, clients, inventory } = useMainStore()
   const { toast } = useToast()
   const [internalOpen, setInternalOpen] = useState(false)
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? setControlledOpen! : setInternalOpen
+
+  const uniqueCities = Array.from(
+    new Set(clients.map((c) => c.city).filter(Boolean)),
+  ).sort() as string[]
+  const uniquePanels = Array.from(
+    new Set(clients.map((c) => c.panel).filter(Boolean)),
+  ).sort() as string[]
+  const uniqueServices = Array.from(
+    new Set([...clients.map((c) => c.service), ...inventory.map((i) => i.name)]),
+  )
+    .filter(Boolean)
+    .sort() as string[]
+
+  const [showNewCity, setShowNewCity] = useState(false)
+  const [showNewPanel, setShowNewPanel] = useState(false)
+  const [showNewService, setShowNewService] = useState(false)
 
   const defaultForm = {
     name: '',
@@ -79,9 +95,17 @@ export function ClientFormModal({
         password: client.password || '',
         mac: client.mac || '',
         dkey: client.dkey || '',
+        obs1: client.obs1 || '',
+        obs2: client.obs2 || '',
       })
+      setShowNewCity(!uniqueCities.includes(client.city || '') && !!client.city)
+      setShowNewPanel(!uniquePanels.includes(client.panel || '') && !!client.panel)
+      setShowNewService(!uniqueServices.includes(client.service || '') && !!client.service)
     } else if (!open) {
       setFormData(defaultForm)
+      setShowNewCity(false)
+      setShowNewPanel(false)
+      setShowNewService(false)
     }
   }, [client, open])
 
@@ -129,118 +153,299 @@ export function ClientFormModal({
           </Button>
         </DialogTrigger>
       ) : null}
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{client ? 'Editar Cliente' : 'Novo Cadastro'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Nome / WhatsApp *</Label>
-              <Input
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nome Completo"
-              />
-              <Input
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="Telefone / WhatsApp"
-                className="mt-2"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Acesso</Label>
-              <Input
-                value={formData.user}
-                onChange={(e) => setFormData({ ...formData, user: e.target.value })}
-                placeholder="Usuário"
-              />
-              <Input
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Senha"
-                type="password"
-                className="mt-2"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Serviço / Painel *</Label>
-              <Select
-                value={formData.service}
-                onValueChange={(v) => setFormData({ ...formData, service: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o Serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IPTV Premium">IPTV Premium</SelectItem>
-                  <SelectItem value="P2P Basic">P2P Basic</SelectItem>
-                  <SelectItem value="P2P Plus">P2P Plus</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={formData.panel}
-                onValueChange={(v) => setFormData({ ...formData, panel: v })}
-              >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Selecione o Painel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Painel 1">Painel 1</SelectItem>
-                  <SelectItem value="Painel 2">Painel 2</SelectItem>
-                  <SelectItem value="Painel 3">Painel 3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Status / Vencimento *</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(v) => setFormData({ ...formData, status: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Automático">Automático (por data)</SelectItem>
-                  <SelectItem value="Devedor">Devedor (Manual)</SelectItem>
-                  <SelectItem value="Vencido +30d">Vencido +30d (Manual)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                required
-                type="date"
-                value={formData.expiryDate}
-                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                className="mt-2"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Financeiro *</Label>
-              <div className="flex gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Column 1: Identificação */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome Completo *</Label>
                 <Input
                   required
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  placeholder="Venda (R$)"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: João Silva"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>WhatsApp / Telefone *</Label>
                 <Input
                   required
-                  type="number"
-                  step="0.01"
-                  value={formData.cost}
-                  onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                  placeholder="Custo (R$)"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="11999999999"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cidade</Label>
+                {!showNewCity ? (
+                  <Select
+                    value={
+                      uniqueCities.includes(formData.city)
+                        ? formData.city
+                        : formData.city
+                          ? 'outra'
+                          : ''
+                    }
+                    onValueChange={(v) => {
+                      if (v === 'outra') {
+                        setShowNewCity(true)
+                        setFormData({ ...formData, city: '' })
+                      } else setFormData({ ...formData, city: v })
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueCities.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="outra" className="font-semibold text-primary">
+                        + Adicionar Nova
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-1">
+                    <Input
+                      autoFocus
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="Nova cidade"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowNewCity(false)
+                        setFormData({ ...formData, city: '' })
+                      }}
+                    >
+                      X
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Status Manual</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(v) => setFormData({ ...formData, status: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Automático">Automático (por data)</SelectItem>
+                    <SelectItem value="Devedor">Devedor (Manual)</SelectItem>
+                    <SelectItem value="Vencido +30d">Vencido +30d (Manual)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Column 2: Credenciais & Serviço */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Serviço *</Label>
+                {!showNewService ? (
+                  <Select
+                    value={
+                      uniqueServices.includes(formData.service)
+                        ? formData.service
+                        : formData.service
+                          ? 'outra'
+                          : ''
+                    }
+                    onValueChange={(v) => {
+                      if (v === 'outra') {
+                        setShowNewService(true)
+                        setFormData({ ...formData, service: '' })
+                      } else setFormData({ ...formData, service: v })
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueServices.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="outra" className="font-semibold text-primary">
+                        + Novo Serviço
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-1">
+                    <Input
+                      required
+                      autoFocus
+                      value={formData.service}
+                      onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+                      placeholder="Novo serviço"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowNewService(false)
+                        setFormData({ ...formData, service: '' })
+                      }}
+                    >
+                      X
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Painel</Label>
+                {!showNewPanel ? (
+                  <Select
+                    value={
+                      uniquePanels.includes(formData.panel)
+                        ? formData.panel
+                        : formData.panel
+                          ? 'outra'
+                          : ''
+                    }
+                    onValueChange={(v) => {
+                      if (v === 'outra') {
+                        setShowNewPanel(true)
+                        setFormData({ ...formData, panel: '' })
+                      } else setFormData({ ...formData, panel: v })
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniquePanels.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="outra" className="font-semibold text-primary">
+                        + Novo Painel
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-1">
+                    <Input
+                      autoFocus
+                      value={formData.panel}
+                      onChange={(e) => setFormData({ ...formData, panel: e.target.value })}
+                      placeholder="Novo painel"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowNewPanel(false)
+                        setFormData({ ...formData, panel: '' })
+                      }}
+                    >
+                      X
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <div className="space-y-2 flex-1">
+                  <Label>Usuário</Label>
+                  <Input
+                    value={formData.user}
+                    onChange={(e) => setFormData({ ...formData, user: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <Label>Senha</Label>
+                  <Input
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="space-y-2 flex-1">
+                  <Label>MAC</Label>
+                  <Input
+                    value={formData.mac}
+                    onChange={(e) => setFormData({ ...formData, mac: e.target.value })}
+                    placeholder="00:00:00:00:00"
+                  />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <Label>D_Key</Label>
+                  <Input
+                    value={formData.dkey}
+                    onChange={(e) => setFormData({ ...formData, dkey: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3: Financeiro & Obs */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Vencimento *</Label>
+                <Input
+                  required
+                  type="date"
+                  value={formData.expiryDate}
+                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="space-y-2 flex-1">
+                  <Label>Preço M (R$) *</Label>
+                  <Input
+                    required
+                    type="number"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <Label>Custo (R$)</Label>
+                  <Input
+                    required
+                    type="number"
+                    step="0.01"
+                    value={formData.cost}
+                    onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Observação 1</Label>
+                <Input
+                  value={formData.obs1}
+                  onChange={(e) => setFormData({ ...formData, obs1: e.target.value })}
+                  placeholder="Detalhes..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Observação 2</Label>
+                <Input
+                  value={formData.obs2}
+                  onChange={(e) => setFormData({ ...formData, obs2: e.target.value })}
+                  placeholder="Mais detalhes..."
                 />
               </div>
             </div>
           </div>
-          <div className="flex justify-end mt-4">
+          <div className="flex justify-end mt-4 border-t pt-4">
             <Button type="button" variant="outline" className="mr-2" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
