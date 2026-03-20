@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, Upload, FileText, CheckCircle2 } from 'lucide-react'
+import { Download, Upload, FileText, CheckCircle2, Trash } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -9,6 +9,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import useMainStore from '@/stores/useMainStore'
 import { getClientStatus } from '@/lib/formatters'
 import { useToast } from '@/hooks/use-toast'
@@ -26,7 +37,7 @@ function parseDate(dateStr: string) {
 }
 
 export function ClientDataActions() {
-  const { filteredClients, importClients, inventory } = useMainStore()
+  const { filteredClients, importClients, inventory, deleteAllClients } = useMainStore()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(1)
@@ -219,6 +230,39 @@ export function ClientDataActions() {
 
   return (
     <div className="flex gap-2 w-full lg:w-auto">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" size="sm" className="flex-1 lg:flex-none">
+            <Trash className="mr-2 h-4 w-4" /> Excluir Todos
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir todos os clientes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all clients? This action is permanent and cannot be
+              undone. (Tem certeza de que deseja excluir todos os clientes? Esta ação é permanente e
+              não pode ser desfeita.)
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                deleteAllClients()
+                toast({
+                  title: 'Ação concluída',
+                  description: 'Todos os clientes foram excluídos com sucesso.',
+                })
+              }}
+            >
+              Excluir Todos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog
         open={open}
         onOpenChange={(op) => {

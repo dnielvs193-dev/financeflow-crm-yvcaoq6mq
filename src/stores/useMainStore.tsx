@@ -54,6 +54,7 @@ type MainStoreContextType = {
   deleteClient: (id: string) => void
   restoreClient: (id: string) => void
   hardDeleteClient: (id: string) => void
+  deleteAllClients: () => void
   renewClient: (id: string, days: number) => void
   importClients: (newClients: Omit<Client, 'id'>[]) => void
   processTransaction: (p: ProcessTxPayload) => void
@@ -347,6 +348,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const deleteClient = (id: string) => updateClient(id, { deleted: true })
   const restoreClient = (id: string) => updateClient(id, { deleted: false })
   const hardDeleteClient = (id: string) => setClients((prev) => prev.filter((c) => c.id !== id))
+  const deleteAllClients = () => setClients([])
 
   const importClients = (newClients: Omit<Client, 'id'>[]) => {
     const clientsWithId = newClients.map((c) => ({
@@ -525,6 +527,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         deleteClient,
         restoreClient,
         hardDeleteClient,
+        deleteAllClients,
         importClients,
         renewClient,
         processTransaction,
