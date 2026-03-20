@@ -3,7 +3,7 @@ import { Client, Bank, Transaction, InventoryItem, PriceTier, Reseller, Payable 
 export const mockInventory: InventoryItem[] = [
   {
     id: 'inv_unitv',
-    name: 'Unitv',
+    name: 'UniTV',
     category: 'Revenda',
     status: 'Ativo',
     stockControl: false,
@@ -29,6 +29,24 @@ export const mockInventory: InventoryItem[] = [
     unitCost: 8.0,
   },
   {
+    id: 'inv_uniplay',
+    name: 'UniPlay',
+    category: 'Revenda',
+    status: 'Ativo',
+    stockControl: false,
+    currentStock: 0,
+    unitCost: 10.0,
+  },
+  {
+    id: 'inv_goat',
+    name: 'Goat',
+    category: 'Revenda',
+    status: 'Ativo',
+    stockControl: false,
+    currentStock: 0,
+    unitCost: 6.0,
+  },
+  {
     id: 'inv_gsat',
     name: 'Gsat',
     category: 'Revenda',
@@ -36,15 +54,6 @@ export const mockInventory: InventoryItem[] = [
     stockControl: false,
     currentStock: 0,
     unitCost: 7.0,
-  },
-  {
-    id: 'inv_uniplay',
-    name: 'Uniplay',
-    category: 'Revenda',
-    status: 'Ativo',
-    stockControl: false,
-    currentStock: 0,
-    unitCost: 10.0,
   },
   {
     id: 'inv_tvexpress',
@@ -85,14 +94,49 @@ export const mockInventory: InventoryItem[] = [
 ]
 
 export const mockTiers: PriceTier[] = [
-  { id: 't_unitv1', itemId: 'inv_unitv', startQty: 1, endQty: 9, unitPrice: 35.0 },
-  { id: 't_unitv2', itemId: 'inv_unitv', startQty: 10, endQty: null, unitPrice: 25.0 },
-  { id: 't_live1', itemId: 'inv_live', startQty: 1, endQty: 9, unitPrice: 35.0 },
-  { id: 't_live2', itemId: 'inv_live', startQty: 10, endQty: null, unitPrice: 25.0 },
-  { id: 't_five1', itemId: 'inv_five', startQty: 1, endQty: 9, unitPrice: 35.0 },
-  { id: 't_five2', itemId: 'inv_five', startQty: 10, endQty: null, unitPrice: 25.0 },
+  // Goat
+  { id: 't_goat_1', itemId: 'inv_goat', startQty: 5, endQty: 9, unitPrice: 9.0 },
+  { id: 't_goat_2', itemId: 'inv_goat', startQty: 10, endQty: 29, unitPrice: 7.0 },
+  { id: 't_goat_3', itemId: 'inv_goat', startQty: 30, endQty: 49, unitPrice: 6.5 },
+  { id: 't_goat_4', itemId: 'inv_goat', startQty: 50, endQty: 99, unitPrice: 6.0 },
+  { id: 't_goat_5', itemId: 'inv_goat', startQty: 100, endQty: 499, unitPrice: 5.0 },
+  { id: 't_goat_6', itemId: 'inv_goat', startQty: 500, endQty: 999, unitPrice: 4.5 },
+  { id: 't_goat_7', itemId: 'inv_goat', startQty: 1000, endQty: 4999, unitPrice: 4.25 },
+  { id: 't_goat_8', itemId: 'inv_goat', startQty: 5000, endQty: 100000, unitPrice: 4.0 },
+
+  // Five
+  { id: 't_five_1', itemId: 'inv_five', startQty: 10, endQty: 49, unitPrice: 12.0 },
+  { id: 't_five_2', itemId: 'inv_five', startQty: 50, endQty: 99, unitPrice: 10.0 },
+  { id: 't_five_3', itemId: 'inv_five', startQty: 100, endQty: 299, unitPrice: 8.0 },
+  { id: 't_five_4', itemId: 'inv_five', startQty: 300, endQty: 999, unitPrice: 7.0 },
+  { id: 't_five_5', itemId: 'inv_five', startQty: 1000, endQty: 4999, unitPrice: 6.0 },
+  { id: 't_five_6', itemId: 'inv_five', startQty: 5000, endQty: 100000, unitPrice: 5.0 },
+
+  // Live
+  { id: 't_live_1', itemId: 'inv_live', startQty: 10, endQty: 50, unitPrice: 10.0 },
+  { id: 't_live_2', itemId: 'inv_live', startQty: 51, endQty: 150, unitPrice: 9.0 },
+  { id: 't_live_3', itemId: 'inv_live', startQty: 151, endQty: 300, unitPrice: 8.0 },
+  { id: 't_live_4', itemId: 'inv_live', startQty: 301, endQty: 700, unitPrice: 7.0 },
+  { id: 't_live_5', itemId: 'inv_live', startQty: 701, endQty: 1000, unitPrice: 6.0 },
+  { id: 't_live_6', itemId: 'inv_live', startQty: 1001, endQty: 100000, unitPrice: 5.0 },
+
+  // UniPlay
+  { id: 't_uniplay_1', itemId: 'inv_uniplay', startQty: 10, endQty: 49, unitPrice: 12.0 },
+  { id: 't_uniplay_2', itemId: 'inv_uniplay', startQty: 50, endQty: 99, unitPrice: 10.0 },
+  { id: 't_uniplay_3', itemId: 'inv_uniplay', startQty: 100, endQty: 299, unitPrice: 8.0 },
+  { id: 't_uniplay_4', itemId: 'inv_uniplay', startQty: 300, endQty: 999, unitPrice: 7.0 },
+  { id: 't_uniplay_5', itemId: 'inv_uniplay', startQty: 1000, endQty: 2999, unitPrice: 6.0 },
+  { id: 't_uniplay_6', itemId: 'inv_uniplay', startQty: 3000, endQty: 5999, unitPrice: 5.0 },
+
+  // UniTV
+  { id: 't_unitv_1', itemId: 'inv_unitv', startQty: 5, endQty: 5, unitPrice: 12.0 },
+  { id: 't_unitv_2', itemId: 'inv_unitv', startQty: 10, endQty: 49, unitPrice: 10.0 },
+  { id: 't_unitv_3', itemId: 'inv_unitv', startQty: 50, endQty: 99, unitPrice: 9.5 },
+  { id: 't_unitv_4', itemId: 'inv_unitv', startQty: 100, endQty: 499, unitPrice: 8.75 },
+  { id: 't_unitv_5', itemId: 'inv_unitv', startQty: 500, endQty: 100000, unitPrice: 8.5 },
+
+  // Others
   { id: 't_gsat1', itemId: 'inv_gsat', startQty: 1, endQty: null, unitPrice: 30.0 },
-  { id: 't_uniplay1', itemId: 'inv_uniplay', startQty: 1, endQty: null, unitPrice: 35.0 },
   { id: 't_tvexpress1', itemId: 'inv_tvexpress', startQty: 1, endQty: null, unitPrice: 40.0 },
   { id: 't_redplay1', itemId: 'inv_redplay', startQty: 1, endQty: null, unitPrice: 38.0 },
   { id: 't_mfc1', itemId: 'inv_mfc', startQty: 1, endQty: null, unitPrice: 30.0 },

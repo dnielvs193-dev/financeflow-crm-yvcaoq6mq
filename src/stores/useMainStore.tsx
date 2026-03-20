@@ -68,6 +68,7 @@ type MainStoreContextType = {
     item: Partial<InventoryItem>,
     itemTiers?: Omit<PriceTier, 'id' | 'itemId'>[],
   ) => void
+  deleteTier: (id: string) => void
   addReseller: (r: Omit<Reseller, 'id' | 'registrationDate'>) => void
   updateReseller: (id: string, updates: Partial<Reseller>) => void
   deleteReseller: (id: string) => void
@@ -394,6 +395,10 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const deleteTier = (id: string) => {
+    setTiers((prev) => prev.filter((t) => t.id !== id))
+  }
+
   const addReseller = (r: Omit<Reseller, 'id' | 'registrationDate'>) => {
     setResellers((prev) => [
       {
@@ -606,6 +611,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         deleteTransaction,
         saveInventoryItem,
         updateInventoryItem,
+        deleteTier,
         addReseller,
         updateReseller,
         deleteReseller,

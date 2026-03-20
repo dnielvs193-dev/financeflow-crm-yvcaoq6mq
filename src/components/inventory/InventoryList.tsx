@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Table,
   TableBody,
@@ -7,26 +7,80 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import useMainStore from '@/stores/useMainStore'
 import { formatCurrency } from '@/lib/formatters'
-import { Edit } from 'lucide-react'
+import { Edit, Trash } from 'lucide-react'
 import { InventoryFormModal } from './InventoryFormModal'
 import { InventoryItem } from '@/types'
 
 export function InventoryList() {
-  const { inventory, tiers } = useMainStore()
+  const { inventory, tiers, deleteTier } = useMainStore()
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
+
+  const rows = useMemo(() => {
+    const generatedRows: any[] = []
+
+    inventory.forEach((item) => {
+      const itemTiers = tiers
+        .filter((t) => t.itemId === item.id)
+        .sort((a, b) => a.startQty - b.startQty)
+
+      if (itemTiers.length === 0) {
+        generatedRows.push({
+          id: `no-tier-${item.id}`,
+          isItemOnly: true,
+          itemObj: item,
+          serviceName: item.name,
+          startQty: '-',
+          endQty: '-',
+          unitPrice: null,
+        })
+      } else {
+        itemTiers.forEach((tier) => {
+          generatedRows.push({
+            id: tier.id,
+            isItemOnly: false,
+            itemObj: item,
+            serviceName: item.name,
+            tierId: tier.id,
+            startQty: tier.startQty,
+            endQty: tier.endQty,
+            unitPrice: tier.unitPrice,
+          })
+        })
+      }
+    })
+
+    return generatedRows.sort((a, b) => {
+      const nameCmp = a.serviceName.localeCompare(b.serviceName)
+      if (nameCmp !== 0) return nameCmp
+      if (a.isItemOnly) return -1
+      if (b.isItemOnly) return 1
+      return (a.startQty as number) - (b.startQty as number)
+    })
+  }, [inventory, tiers])
 
   const getCategoryColor = (cat: string) => {
     switch (cat) {
       case 'Revenda':
-        return 'bg-blue-500/15 text-blue-600'
+        return 'text-blue-600 border-blue-200 bg-blue-50'
       case 'Ativação':
-        return 'bg-orange-500/15 text-orange-600'
+        return 'text-orange-600 border-orange-200 bg-orange-50'
       default:
-        return 'bg-primary/15 text-primary'
+        return 'text-primary border-primary/20 bg-primary/5'
     }
   }
 
@@ -42,91 +96,89 @@ export function InventoryList() {
       <Table className="min-w-[800px]">
         <TableHeader>
           <TableRow>
-            <TableHead>Item / Serviço</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Estoque Atual</TableHead>
-            <TableHead>Faixas de Venda (Tiers)</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ação</TableHead>
+            <TableHead>Serviço</TableHead>
+            <TableHead>Qtd Mínima</TableHead>
+            <TableHead>Qtd Máxima</TableHead>
+            <TableHead>Preço</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {inventory.map((item) => {
-            const itemTiers = tiers
-              .filter((t) => t.itemId === item.id)
-              .sort((a, b) => a.startQty - b.startQty)
-            return (
-              <TableRow key={item.id} className={item.status === 'Inativo' ? 'opacity-60' : ''}>
-                <TableCell className="font-medium">
-                  {item.name}
-                  <div className="text-xs text-muted-foreground font-normal mt-1">
-                    Custo Unitário:{' '}
-                    <span className="font-medium">{formatCurrency(item.unitCost || 0)}</span>
-                  </div>
-                  {item.observations && (
-                    <div className="text-[11px] text-muted-foreground font-normal mt-0.5">
-                      Obs: {item.observations}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
+          {rows.map((row) => (
+            <TableRow key={row.id} className={row.itemObj.status === 'Inativo' ? 'opacity-60' : ''}>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  <span>{row.serviceName}</span>
                   <Badge
                     variant="outline"
-                    className={`border-0 ${getCategoryColor(item.category)}`}
+                    className={`text-[10px] py-0 px-1.5 h-4 ${getCategoryColor(
+                      row.itemObj.category,
+                    )}`}
                   >
-                    {item.category}
+                    {row.itemObj.category}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  {item.stockControl ? (
-                    <span
-                      className={
-                        item.currentStock < 10 ? 'text-destructive font-bold' : 'font-medium'
-                      }
-                    >
-                      {item.currentStock} un
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-sm font-medium">Ilimitado</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    {itemTiers.map((t) => (
-                      <div
-                        key={t.id}
-                        className="text-xs bg-muted/40 p-1 px-2 rounded flex justify-between w-[200px] items-center"
-                      >
-                        <span className="text-muted-foreground">
-                          {t.startQty} {t.endQty ? `- ${t.endQty}` : '+'} un:
-                        </span>
-                        <span className="font-medium text-primary">
-                          Venda: {formatCurrency(t.unitPrice)}
-                        </span>
-                      </div>
-                    ))}
-                    {itemTiers.length === 0 && (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={item.status === 'Ativo' ? 'default' : 'secondary'}>
-                    {item.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => setEditingItem(item)}>
-                    <Edit className="h-4 w-4" />
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">{row.startQty}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {row.endQty || (row.isItemOnly ? '-' : '∞')}
+              </TableCell>
+              <TableCell className="font-medium">
+                {row.unitPrice !== null ? formatCurrency(row.unitPrice) : '-'}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditingItem(row.itemObj)}
+                    title="Editar Item"
+                    className="h-8 w-8"
+                  >
+                    <Edit className="h-4 w-4 text-muted-foreground" />
                   </Button>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-          {inventory.length === 0 && (
+
+                  {!row.isItemOnly && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Excluir Faixa de Preço"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir faixa de preço?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Você tem certeza que deseja excluir esta faixa de preço do serviço{' '}
+                            <span className="font-medium text-foreground">{row.serviceName}</span>?
+                            Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteTier(row.tierId)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+          {rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                Nenhum item cadastrado.
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                Nenhum serviço ou faixa de preço cadastrada.
               </TableCell>
             </TableRow>
           )}
