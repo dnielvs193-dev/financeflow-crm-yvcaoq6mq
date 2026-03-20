@@ -32,7 +32,7 @@ export function InventoryList() {
             <TableHead>Item / Serviço</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead>Estoque Atual</TableHead>
-            <TableHead>Faixas de Preço (Tiers)</TableHead>
+            <TableHead>Faixas de Venda (Tiers)</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -45,8 +45,12 @@ export function InventoryList() {
               <TableRow key={item.id} className={item.status === 'Inativo' ? 'opacity-60' : ''}>
                 <TableCell className="font-medium">
                   {item.name}
+                  <div className="text-xs text-muted-foreground font-normal mt-1">
+                    Custo Unitário:{' '}
+                    <span className="font-medium">{formatCurrency(item.unitCost || 0)}</span>
+                  </div>
                   {item.observations && (
-                    <div className="text-xs text-muted-foreground font-normal mt-1">
+                    <div className="text-[11px] text-muted-foreground font-normal mt-0.5">
                       Obs: {item.observations}
                     </div>
                   )}
@@ -77,16 +81,13 @@ export function InventoryList() {
                     {itemTiers.map((t) => (
                       <div
                         key={t.id}
-                        className="text-xs bg-muted/40 p-1 px-2 rounded flex justify-between w-[240px] items-center"
+                        className="text-xs bg-muted/40 p-1 px-2 rounded flex justify-between w-[200px] items-center"
                       >
                         <span className="text-muted-foreground">
                           {t.startQty} {t.endQty ? `- ${t.endQty}` : '+'} un:
                         </span>
-                        <span className="font-medium flex flex-col items-end">
-                          <span>Venda: {formatCurrency(t.unitPrice)}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            Custo: {formatCurrency(t.unitCost)}
-                          </span>
+                        <span className="font-medium text-primary">
+                          Venda: {formatCurrency(t.unitPrice)}
                         </span>
                       </div>
                     ))}

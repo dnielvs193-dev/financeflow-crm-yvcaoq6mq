@@ -40,16 +40,17 @@ export function ResellerSellModal({ reseller }: { reseller: Reseller }) {
 
   const pricing = useMemo(() => {
     if (!itemId || qty <= 0) return null
+    const item = inventory.find((i) => i.id === itemId)
     const itemTiers = tiers.filter((t) => t.itemId === itemId)
     const tier = itemTiers.find((t) => qty >= t.startQty && (t.endQty === null || qty <= t.endQty))
-    if (!tier) return null
+    if (!tier || !item) return null
     return {
       unitPrice: tier.unitPrice,
-      unitCost: tier.unitCost,
+      unitCost: item.unitCost,
       totalPrice: tier.unitPrice * qty,
-      totalCost: tier.unitCost * qty,
+      totalCost: item.unitCost * qty,
     }
-  }, [itemId, qty, tiers])
+  }, [itemId, qty, tiers, inventory])
 
   const handleSell = () => {
     if (!itemId || !bankId || qty <= 0 || !pricing) return

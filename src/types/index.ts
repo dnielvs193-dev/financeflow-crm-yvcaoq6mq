@@ -70,6 +70,7 @@ export type InventoryItem = {
   status: 'Ativo' | 'Inativo'
   stockControl: boolean
   currentStock: number
+  unitCost: number
   observations?: string
 }
 
@@ -79,7 +80,6 @@ export type PriceTier = {
   startQty: number
   endQty: number | null
   unitPrice: number
-  unitCost: number
 }
 
 export type ResellerStatus = 'Ativo' | 'Inativo' | 'Lead'

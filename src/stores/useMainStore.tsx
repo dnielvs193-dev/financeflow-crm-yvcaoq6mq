@@ -152,7 +152,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       setTransactions((prev) => [revTx, ...prev])
       updateBankBalance(orig.bankId, -orig.profit)
       if (orig.itemId && orig.qty) {
-        const isSales = ['Venda para Revenda', 'Taxa de Ativação'].includes(orig.type)
+        const isSales = ['Venda para Revenda', 'Taxa de Ativação', 'Renovação de Cliente'].includes(
+          orig.type,
+        )
         updateStock(orig.itemId, orig.qty, isSales)
       }
       return
@@ -166,7 +168,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       updateBankBalance(tx.bankId, tx.profit)
 
       if (tx.itemId && tx.qty) {
-        if (['Venda para Revenda', 'Taxa de Ativação'].includes(tx.type))
+        if (['Venda para Revenda', 'Taxa de Ativação', 'Renovação de Cliente'].includes(tx.type))
           updateStock(tx.itemId, tx.qty, false)
         if (['Compra de Estoque', 'Compra de Ativação'].includes(tx.type))
           updateStock(tx.itemId, tx.qty, true)
@@ -239,17 +241,21 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     baseDate.setDate(baseDate.getDate() + days)
 
     if ([15, 30, 31].includes(days)) {
+      const invItem = inventory.find((i) => i.name.toLowerCase() === client.service.toLowerCase())
+      const actualCost = invItem ? invItem.unitCost : client.cost || 0
+
       processTransaction({
         action: 'standard',
         tx: {
           type: 'Renovação de Cliente',
           entry: client.price,
-          cost: client.cost,
-          profit: client.price - client.cost,
+          cost: actualCost,
+          profit: client.price - actualCost,
           bankId: banks[0]?.id || '',
           description: `Renovação Auto - ${client.name} - ${client.service}`,
           clientId: client.id,
           service: client.service,
+          itemId: invItem?.id,
           qty: 1,
         },
       })
