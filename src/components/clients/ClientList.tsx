@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Table,
   TableBody,
@@ -12,17 +12,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import useMainStore from '@/stores/useMainStore'
 import { Client } from '@/types'
 import { ClientStatusBadge } from './ClientStatusBadge'
-import { formatDate, formatCurrency } from '@/lib/formatters'
-import {
-  MoreVertical,
-  Phone,
-  Trash,
-  Edit,
-  MessageSquare,
-  Tag,
-  LifeBuoy,
-  History,
-} from 'lucide-react'
+import { formatDate, formatCurrency, getClientStatus } from '@/lib/formatters'
+import { MoreVertical, Phone, Trash, Edit, MessageSquare, Tag, LifeBuoy } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
@@ -32,14 +23,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ClientFormModal } from './ClientFormModal'
+import { Badge } from '@/components/ui/badge'
+
+const getPreviewDate = (currentDate: string, days: number) => {
+  let base = new Date(currentDate)
+  const status = getClientStatus(currentDate)
+  if (status === 'Vencido' || status === 'Vencido +30d') base = new Date()
+  base.setDate(base.getDate() + days)
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(base)
+}
 
 export function ClientList() {
-  const { filteredClients, renewClient, deleteClient } = useMainStore()
+  const { clients, filteredClients, renewClient, deleteClient } = useMainStore()
   const { toast } = useToast()
 
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [sortCol, setSortCol] = useState<'name' | 'service' | 'expiryDate'>('expiryDate')
   const [sortDesc, setSortDesc] = useState(false)
+
+  const nameCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    clients
+      .filter((c) => !c.deleted)
+      .forEach((c) => {
+        const name = c.name.trim().toLowerCase()
+        counts[name] = (counts[name] || 0) + 1
+      })
+    return counts
+  }, [clients])
 
   const handleRenew = (id: string, days: number) => {
     renewClient(id, days)
@@ -52,18 +63,11 @@ export function ClientList() {
     })
   }
 
-  const placeholderAction = (action: string) => {
-    toast({
-      title: 'Ação Registrada',
-      description: `Módulo "${action}" em desenvolvimento para futuras integrações.`,
-    })
-  }
-
   const handleSort = (col: 'name' | 'service' | 'expiryDate') => {
     if (sortCol === col) setSortDesc(!sortDesc)
     else {
       setSortCol(col)
-      setSortDesc(col === 'name' || col === 'service' ? false : false)
+      setSortDesc(false)
     }
   }
 
@@ -96,134 +100,95 @@ export function ClientList() {
               >
                 Cliente {sortCol === 'name' && (sortDesc ? '↓' : '↑')}
               </TableHead>
-              <TableHead>Credenciais</TableHead>
-              <TableHead
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('service')}
-              >
-                Serviço / Painel {sortCol === 'service' && (sortDesc ? '↓' : '↑')}
-              </TableHead>
+              <TableHead>Serviço / Preço</TableHead>
               <TableHead
                 className="cursor-pointer hover:bg-muted/50 w-[180px]"
                 onClick={() => handleSort('expiryDate')}
               >
-                Financeiro {sortCol === 'expiryDate' && (sortDesc ? '↓' : '↑')}
+                Vencimento {sortCol === 'expiryDate' && (sortDesc ? '↓' : '↑')}
               </TableHead>
-              <TableHead className="w-[280px]">Gestão de Vencimento</TableHead>
+              <TableHead className="w-[300px]">Renovação Rápida</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedClients.map((client) => (
-              <TableRow key={client.id}>
-                <TableCell>
-                  <div className="font-medium">{client.name}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Phone className="h-3 w-3" /> {client.phone}
-                  </div>
-                  {client.city && (
-                    <div className="text-[10px] text-muted-foreground mt-0.5">{client.city}</div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-medium">{client.user || '-'}</div>
-                  <div className="text-xs text-muted-foreground">{client.password || '-'}</div>
-                  {(client.mac || client.dkey) && (
-                    <div className="text-[10px] font-mono mt-1 text-muted-foreground flex flex-col">
-                      {client.mac && <span>MAC: {client.mac}</span>}
-                      {client.dkey && <span>DK: {client.dkey}</span>}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-bold text-primary">{client.service}</div>
-                  <div className="text-xs text-muted-foreground mb-1">{client.panel || '-'}</div>
-                  <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground">Vence:</span>
-                    <span className="font-medium">{formatDate(client.expiryDate)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs mt-1">
-                    <span className="text-muted-foreground">Preço:</span>
-                    <span className="font-medium text-primary">{formatCurrency(client.price)}</span>
-                  </div>
-                  {(client.obs1 || client.obs2) && (
-                    <div
-                      className="text-[10px] text-muted-foreground mt-1.5 p-1 bg-muted/30 rounded border max-w-[150px] truncate"
-                      title={`${client.obs1 || ''} ${client.obs2 || ''}`}
-                    >
-                      {client.obs1} {client.obs2}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex gap-1">
-                      {[-1, 1].map((d) => (
-                        <Button
-                          key={d}
+            {sortedClients.map((client) => {
+              const count = nameCounts[client.name.trim().toLowerCase()] || 0
+              return (
+                <TableRow key={client.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {client.classification && (
+                        <span className="text-lg">{client.classification}</span>
+                      )}
+                      <div className="font-bold text-base">{client.name}</div>
+                      {count > 1 && (
+                        <Badge
                           variant="secondary"
-                          size="sm"
-                          className="h-6 text-[10px] px-1.5 flex-1"
-                          onClick={() => handleRenew(client.id, d)}
+                          className="bg-orange-500/15 text-orange-600 border-0 h-5 px-1.5 text-[10px]"
                         >
-                          {d > 0 ? `+${d}d` : `${d}d`}
-                        </Button>
-                      ))}
+                          {count} points
+                        </Badge>
+                      )}
                     </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Phone className="h-3 w-3" /> {client.phone}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm font-bold text-primary">{client.service}</div>
+                    <div className="text-xs font-medium text-muted-foreground mb-1">
+                      {formatCurrency(client.price)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium text-sm">{formatDate(client.expiryDate)}</div>
+                    <div className="mt-1">
+                      <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex gap-1">
                       {[15, 30, 31].map((d) => (
                         <Button
                           key={d}
                           variant="outline"
                           size="sm"
-                          className="h-6 text-[10px] px-1.5 flex-1 border-primary/20 text-primary hover:bg-primary/10"
+                          className="h-7 text-xs px-2 flex-1 border-primary/20 text-primary hover:bg-primary/10"
                           onClick={() => handleRenew(client.id, d)}
                         >
-                          +{d}d
+                          +{d}d ({getPreviewDate(client.expiryDate, d)})
                         </Button>
                       ))}
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => setEditingClient(client)}>
-                        <Edit className="mr-2 h-4 w-4" /> Editar Cliente
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => placeholderAction('Feed Whatsapp')}>
-                        <MessageSquare className="mr-2 h-4 w-4 text-blue-500" /> Disparar Feed
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => placeholderAction('Promoção')}>
-                        <Tag className="mr-2 h-4 w-4 text-orange-500" /> Enviar Promoção
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => placeholderAction('Resgate de Cliente')}>
-                        <LifeBuoy className="mr-2 h-4 w-4 text-green-500" /> Tentar Resgate
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => deleteClient(client.id)}
-                        className="text-destructive"
-                      >
-                        <Trash className="mr-2 h-4 w-4" /> Lixeira
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => setEditingClient(client)}>
+                          <Edit className="mr-2 h-4 w-4" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => deleteClient(client.id)}
+                        >
+                          <Trash className="mr-2 h-4 w-4" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
             {sortedClients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   Nenhum cliente encontrado.
                 </TableCell>
               </TableRow>
@@ -233,62 +198,56 @@ export function ClientList() {
       </div>
 
       <div className="grid gap-4 lg:hidden">
-        {sortedClients.map((client) => (
-          <Card key={client.id} className="border-none shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-semibold">{client.name}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {client.service} - {client.panel}
-                  </p>
-                </div>
-                <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-muted/30 p-2 rounded">
-                <div>
-                  <span className="text-muted-foreground text-xs">Vencimento</span>
-                  <div className="font-medium flex items-center gap-1">
-                    {formatDate(client.expiryDate)}
+        {sortedClients.map((client) => {
+          const count = nameCounts[client.name.trim().toLowerCase()] || 0
+          return (
+            <Card key={client.id} className="border-none shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-bold text-base flex items-center gap-1">
+                      {client.classification} {client.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {client.service} • {formatCurrency(client.price)}
+                    </p>
+                    {count > 1 && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-orange-500/15 text-orange-600 border-0 mt-1 text-[10px]"
+                      >
+                        {count} points
+                      </Badge>
+                    )}
                   </div>
+                  <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
                 </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">Preço M</span>
-                  <div className="font-medium text-primary">{formatCurrency(client.price)}</div>
+                <div className="flex flex-wrap gap-2 mb-3 mt-4">
+                  {[15, 30, 31].map((d) => (
+                    <Button
+                      key={d}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-8 text-xs bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                      onClick={() => handleRenew(client.id, d)}
+                    >
+                      +{d}d ({getPreviewDate(client.expiryDate, d)})
+                    </Button>
+                  ))}
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {[15, 30, 31].map((d) => (
+                <div className="flex gap-2">
                   <Button
-                    key={d}
                     variant="outline"
-                    size="sm"
-                    className="flex-1 h-8 text-xs bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
-                    onClick={() => handleRenew(client.id, d)}
+                    className="flex-1 text-xs"
+                    onClick={() => setEditingClient(client)}
                   >
-                    Renovar +{d}d
+                    <Edit className="h-3 w-3 mr-2" /> Editar
                   </Button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 text-xs"
-                  onClick={() => setEditingClient(client)}
-                >
-                  <Edit className="h-3 w-3 mr-2" /> Editar
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 text-xs text-blue-500 border-blue-500/20 hover:bg-blue-500/10"
-                  onClick={() => placeholderAction('Ação Rápida')}
-                >
-                  <MessageSquare className="h-3 w-3 mr-2" /> Ações
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
     </div>
   )

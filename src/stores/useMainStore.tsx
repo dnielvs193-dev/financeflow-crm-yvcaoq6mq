@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useMemo } from 'react'
-import { Client, Transaction, Bank, InventoryItem, PriceTier, Reseller } from '@/types'
+import { Client, Transaction, Bank, InventoryItem, PriceTier, Reseller, Payable } from '@/types'
 import { getClientStatus } from '@/lib/formatters'
 import {
   mockClients,
@@ -8,6 +8,7 @@ import {
   mockInventory,
   mockTiers,
   mockResellers,
+  mockPayables,
 } from '@/lib/mockData'
 
 export type ProcessTxPayload =
@@ -22,6 +23,7 @@ type MainStoreContextType = {
   inventory: InventoryItem[]
   tiers: PriceTier[]
   resellers: Reseller[]
+  payables: Payable[]
   searchQuery: string
   setSearchQuery: (q: string) => void
   statusFilter: string
@@ -55,9 +57,15 @@ type MainStoreContextType = {
   renewClient: (id: string, days: number) => void
   importClients: (newClients: Omit<Client, 'id'>[]) => void
   processTransaction: (p: ProcessTxPayload) => void
+  deleteTransaction: (id: string) => void
   saveInventoryItem: (
     i: Omit<InventoryItem, 'id'>,
     itemTiers: Omit<PriceTier, 'id' | 'itemId'>[],
+  ) => void
+  updateInventoryItem: (
+    id: string,
+    item: Partial<InventoryItem>,
+    itemTiers?: Omit<PriceTier, 'id' | 'itemId'>[],
   ) => void
   addReseller: (r: Omit<Reseller, 'id' | 'registrationDate'>) => void
   updateReseller: (id: string, updates: Partial<Reseller>) => void
@@ -65,6 +73,10 @@ type MainStoreContextType = {
   addBank: (b: Omit<Bank, 'id'>) => void
   updateBank: (id: string, u: Partial<Bank>) => void
   deleteBank: (id: string) => void
+  addPayable: (p: Omit<Payable, 'id'>) => void
+  updatePayable: (id: string, u: Partial<Payable>) => void
+  deletePayable: (id: string) => void
+  payPayable: (id: string) => void
 }
 
 const MainStoreContext = createContext<MainStoreContextType | undefined>(undefined)
@@ -76,6 +88,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory)
   const [tiers, setTiers] = useState<PriceTier[]>(mockTiers)
   const [resellers, setResellers] = useState<Reseller[]>(mockResellers)
+  const [payables, setPayables] = useState<Payable[]>(mockPayables)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -245,6 +258,26 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const deleteTransaction = (id: string) => {
+    const orig = transactions.find((t) => t.id === id)
+    if (!orig) return
+    setTransactions((prev) => prev.filter((t) => t.id !== id))
+    if (orig.splitDistribution) {
+      if (orig.splitDistribution.costBankId)
+        updateBankBalance(orig.splitDistribution.costBankId, -orig.splitDistribution.costAmount)
+      if (orig.splitDistribution.profitBankId)
+        updateBankBalance(orig.splitDistribution.profitBankId, -orig.splitDistribution.profitAmount)
+    } else {
+      updateBankBalance(orig.bankId, -orig.profit)
+    }
+    if (orig.itemId && orig.qty) {
+      const isSales = ['Venda para Revenda', 'Taxa de Ativação', 'Renovação de Cliente'].includes(
+        orig.type,
+      )
+      updateStock(orig.itemId, orig.qty, isSales)
+    }
+  }
+
   const saveInventoryItem = (
     item: Omit<InventoryItem, 'id'>,
     itemTiers: Omit<PriceTier, 'id' | 'itemId'>[],
@@ -255,6 +288,25 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       ...itemTiers.map((t) => ({ ...t, id: Math.random().toString(36).substr(2, 9), itemId: id })),
       ...prev,
     ])
+  }
+
+  const updateInventoryItem = (
+    id: string,
+    item: Partial<InventoryItem>,
+    itemTiers?: Omit<PriceTier, 'id' | 'itemId'>[],
+  ) => {
+    setInventory((prev) => prev.map((i) => (i.id === id ? { ...i, ...item } : i)))
+    if (itemTiers) {
+      setTiers((prev) => prev.filter((t) => t.itemId !== id))
+      setTiers((prev) => [
+        ...itemTiers.map((t) => ({
+          ...t,
+          id: Math.random().toString(36).substr(2, 9),
+          itemId: id,
+        })),
+        ...prev,
+      ])
+    }
   }
 
   const addReseller = (r: Omit<Reseller, 'id' | 'registrationDate'>) => {
@@ -306,7 +358,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const currentStatus = getClientStatus(client.expiryDate, client.status)
-    if (currentStatus === 'Vencido' || currentStatus === 'Vencido +30d') baseDate = new Date()
+    if (['Vencido', 'Vencido +30d'].includes(currentStatus || '')) baseDate = new Date()
     baseDate.setDate(baseDate.getDate() + days)
 
     if ([15, 30, 31].includes(days)) {
@@ -321,7 +373,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
           cost: actualCost,
           profit: client.price - actualCost,
           bankId: banks[0]?.id || '',
-          description: `Renovação Auto - ${client.name} - ${client.service}`,
+          description: `Renovação Auto - ${client.name}`,
           clientId: client.id,
           service: client.service,
           itemId: invItem?.id,
@@ -334,6 +386,29 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       lastExpiryDate: client.expiryDate,
       status: client.status === 'Devedor' ? 'Devedor' : null,
     })
+  }
+
+  const addPayable = (p: Omit<Payable, 'id'>) =>
+    setPayables((prev) => [{ ...p, id: Math.random().toString(36).substr(2, 9) }, ...prev])
+  const updatePayable = (id: string, u: Partial<Payable>) =>
+    setPayables((prev) => prev.map((x) => (x.id === id ? { ...x, ...u } : x)))
+  const deletePayable = (id: string) => setPayables((prev) => prev.filter((x) => x.id !== id))
+  const payPayable = (id: string) => {
+    const p = payables.find((x) => x.id === id)
+    if (!p) return
+    const defaultContas = banks.find((b) => b.type === 'Contas' && b.isDefault) || banks[0]
+    processTransaction({
+      action: 'standard',
+      tx: {
+        type: 'Pagamento de Contas',
+        entry: 0,
+        cost: p.amount,
+        profit: -p.amount,
+        bankId: defaultContas?.id || '',
+        description: `Pagamento: ${p.description}`,
+      },
+    })
+    updatePayable(id, { status: 'Pago', paymentDate: new Date().toISOString() })
   }
 
   const filteredClients = useMemo(
@@ -349,7 +424,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
             c.name.toLowerCase().includes(q) ||
             c.phone.includes(q) ||
             c.service.toLowerCase().includes(q) ||
-            st.toLowerCase().includes(q)
+            (st && st.toLowerCase().includes(q))
           )
         }
         return true
@@ -407,6 +482,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         inventory,
         tiers,
         resellers,
+        payables,
         searchQuery,
         setSearchQuery,
         statusFilter,
@@ -440,13 +516,19 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         importClients,
         renewClient,
         processTransaction,
+        deleteTransaction,
         saveInventoryItem,
+        updateInventoryItem,
         addReseller,
         updateReseller,
         deleteReseller,
         addBank,
         updateBank,
         deleteBank,
+        addPayable,
+        updatePayable,
+        deletePayable,
+        payPayable,
       }}
     >
       {children}

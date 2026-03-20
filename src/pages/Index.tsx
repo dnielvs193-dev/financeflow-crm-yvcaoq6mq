@@ -13,24 +13,19 @@ export default function Index() {
     txSearchQuery || txTypeFilter !== 'all' || txBankFilter !== 'all' || txPeriodFilter !== 'all'
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-fade-in-up">
       {isFiltered && (
         <Alert className="bg-primary/5 border-primary/20 animate-fade-in-down">
           <Info className="h-4 w-4 text-primary" />
           <AlertDescription className="text-primary font-medium text-sm">
             Filtros financeiros ativos. Os indicadores abaixo estão refletindo apenas os dados do
-            subconjunto filtrado (Extrato).
+            subconjunto filtrado.
           </AlertDescription>
         </Alert>
       )}
       <SummaryCards transactions={filteredTransactions} />
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1">
         <RevenueChart transactions={filteredTransactions} />
-        <div className="hidden lg:flex rounded-lg border bg-card text-card-foreground shadow-sm items-center justify-center p-6 bg-muted/10 border-dashed">
-          <p className="text-muted-foreground text-sm">
-            Gráfico de Distribuição de Custo e Lucro em desenvolvimento...
-          </p>
-        </div>
       </div>
       <OperationalCards />
     </div>

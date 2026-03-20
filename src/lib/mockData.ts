@@ -1,4 +1,4 @@
-import { Client, Bank, Transaction, InventoryItem, PriceTier, Reseller } from '@/types'
+import { Client, Bank, Transaction, InventoryItem, PriceTier, Reseller, Payable } from '@/types'
 
 export const mockInventory: InventoryItem[] = [
   {
@@ -34,7 +34,6 @@ export const mockTiers: PriceTier[] = [
   { id: 't_g1', itemId: 'inv_goat', startQty: 5, endQty: 9, unitPrice: 9.0 },
   { id: 't_g2', itemId: 'inv_goat', startQty: 10, endQty: 29, unitPrice: 7.0 },
   { id: 't_g3', itemId: 'inv_goat', startQty: 30, endQty: 49, unitPrice: 6.5 },
-
   { id: 't_a1', itemId: 'inv_ativ', startQty: 1, endQty: null, unitPrice: 5.0 },
 ]
 
@@ -50,6 +49,7 @@ export const mockClients: Client[] = [
     cost: 3.5,
     status: null,
     city: 'São Paulo',
+    classification: '🟢',
     user: 'joao.silva',
     mac: '00:1A:2B:3C:4D:5E',
     obs1: 'Cliente antigo',
@@ -64,6 +64,7 @@ export const mockClients: Client[] = [
     price: 30,
     cost: 4.0,
     status: null,
+    classification: '💸',
     city: 'Rio de Janeiro',
     user: 'maria.s',
     password: 'password123',
@@ -74,7 +75,7 @@ export const mockClients: Client[] = [
 export const mockBanks: Bank[] = [
   { id: 'b1', name: 'Nubank Disponível', balance: 3250.5, type: 'Disponível', isDefault: true },
   { id: 'b2', name: 'Cofre Estoque', balance: 1400.0, type: 'Custo', isDefault: true },
-  { id: 'b3', name: 'Provisão Contas', balance: 0.0, type: 'Contas', isDefault: true },
+  { id: 'b3', name: 'Provisão Contas', balance: 500.0, type: 'Contas', isDefault: true },
 ]
 
 export const mockTransactions: Transaction[] = [
@@ -87,7 +88,7 @@ export const mockTransactions: Transaction[] = [
     profit: 31.5,
     profitPercentage: 90,
     bankId: 'b1',
-    description: 'Renovação - João Silva - Goat',
+    description: 'Renovação - João Silva',
     service: 'Goat',
     qty: 1,
     splitDistribution: {
@@ -110,5 +111,24 @@ export const mockResellers: Reseller[] = [
     purchaseIntention: 'Alta',
     registrationDate: new Date(Date.now() - 86400000 * 5).toISOString(),
     observations: 'Excelente pagador, compra semanalmente.',
+  },
+]
+
+export const mockPayables: Payable[] = [
+  {
+    id: 'p1',
+    description: 'Servidor Dedicado AWS',
+    category: 'Contas Fixas',
+    dueDate: new Date(Date.now() + 86400000 * 5).toISOString(),
+    amount: 450.0,
+    status: 'Pendente',
+  },
+  {
+    id: 'p2',
+    description: 'Fornecedor de Paineis',
+    category: 'Dívidas',
+    dueDate: new Date(Date.now() + 86400000 * 12).toISOString(),
+    amount: 1200.0,
+    status: 'Pendente',
   },
 ]

@@ -28,6 +28,16 @@ interface ClientFormModalProps {
   trigger?: React.ReactNode
 }
 
+const EMOJIS = [
+  { val: 'none', label: 'Sem Classificação' },
+  { val: '🟢', label: 'Bom Pagador 🟢' },
+  { val: '🔴', label: 'Ruim 🔴' },
+  { val: '😒', label: 'Chato 😒' },
+  { val: '😫', label: 'Estressado 😫' },
+  { val: '😇', label: 'Gente Boa 😇' },
+  { val: '💸', label: 'Inadimplente 💸' },
+]
+
 export function ClientFormModal({
   client,
   open: controlledOpen,
@@ -74,6 +84,7 @@ export function ClientFormModal({
     dkey: '',
     obs1: '',
     obs2: '',
+    classification: 'none',
   }
 
   const [formData, setFormData] = useState(defaultForm)
@@ -97,6 +108,7 @@ export function ClientFormModal({
         dkey: client.dkey || '',
         obs1: client.obs1 || '',
         obs2: client.obs2 || '',
+        classification: client.classification || 'none',
       })
       setShowNewCity(!uniqueCities.includes(client.city || '') && !!client.city)
       setShowNewPanel(!uniquePanels.includes(client.panel || '') && !!client.panel)
@@ -108,6 +120,16 @@ export function ClientFormModal({
       setShowNewService(false)
     }
   }, [client, open])
+
+  const handleServiceChange = (val: string) => {
+    if (val === 'outra') {
+      setShowNewService(true)
+      setFormData((f) => ({ ...f, service: '' }))
+    } else {
+      const inv = inventory.find((i) => i.name === val)
+      setFormData((f) => ({ ...f, service: val, cost: inv ? inv.unitCost.toString() : f.cost }))
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -130,6 +152,7 @@ export function ClientFormModal({
       dkey: formData.dkey,
       obs1: formData.obs1,
       obs2: formData.obs2,
+      classification: formData.classification === 'none' ? undefined : formData.classification,
     }
 
     if (client) {
@@ -159,7 +182,6 @@ export function ClientFormModal({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Column 1: Identificação */}
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome Completo *</Label>
@@ -167,7 +189,6 @@ export function ClientFormModal({
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: João Silva"
                 />
               </div>
               <div className="space-y-2">
@@ -176,8 +197,25 @@ export function ClientFormModal({
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="11999999999"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Classificação (Emoji)</Label>
+                <Select
+                  value={formData.classification}
+                  onValueChange={(v) => setFormData({ ...formData, classification: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMOJIS.map((e) => (
+                      <SelectItem key={e.val} value={e.val}>
+                        {e.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Cidade</Label>
@@ -207,7 +245,7 @@ export function ClientFormModal({
                         </SelectItem>
                       ))}
                       <SelectItem value="outra" className="font-semibold text-primary">
-                        + Adicionar Nova
+                        + Nova
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -217,7 +255,6 @@ export function ClientFormModal({
                       autoFocus
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="Nova cidade"
                     />
                     <Button
                       type="button"
@@ -232,25 +269,8 @@ export function ClientFormModal({
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label>Status Manual</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(v) => setFormData({ ...formData, status: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Automático">Automático (por data)</SelectItem>
-                    <SelectItem value="Devedor">Devedor (Manual)</SelectItem>
-                    <SelectItem value="Vencido +30d">Vencido +30d (Manual)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
-            {/* Column 2: Credenciais & Serviço */}
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Serviço *</Label>
@@ -263,12 +283,7 @@ export function ClientFormModal({
                           ? 'outra'
                           : ''
                     }
-                    onValueChange={(v) => {
-                      if (v === 'outra') {
-                        setShowNewService(true)
-                        setFormData({ ...formData, service: '' })
-                      } else setFormData({ ...formData, service: v })
-                    }}
+                    onValueChange={handleServiceChange}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
@@ -280,7 +295,7 @@ export function ClientFormModal({
                         </SelectItem>
                       ))}
                       <SelectItem value="outra" className="font-semibold text-primary">
-                        + Novo Serviço
+                        + Novo
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -291,7 +306,6 @@ export function ClientFormModal({
                       autoFocus
                       value={formData.service}
                       onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-                      placeholder="Novo serviço"
                     />
                     <Button
                       type="button"
@@ -334,7 +348,7 @@ export function ClientFormModal({
                         </SelectItem>
                       ))}
                       <SelectItem value="outra" className="font-semibold text-primary">
-                        + Novo Painel
+                        + Novo
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -344,7 +358,6 @@ export function ClientFormModal({
                       autoFocus
                       value={formData.panel}
                       onChange={(e) => setFormData({ ...formData, panel: e.target.value })}
-                      placeholder="Novo painel"
                     />
                     <Button
                       type="button"
@@ -381,7 +394,6 @@ export function ClientFormModal({
                   <Input
                     value={formData.mac}
                     onChange={(e) => setFormData({ ...formData, mac: e.target.value })}
-                    placeholder="00:00:00:00:00"
                   />
                 </div>
                 <div className="space-y-2 flex-1">
@@ -394,7 +406,6 @@ export function ClientFormModal({
               </div>
             </div>
 
-            {/* Column 3: Financeiro & Obs */}
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Vencimento *</Label>
@@ -428,19 +439,26 @@ export function ClientFormModal({
                 </div>
               </div>
               <div className="space-y-2">
+                <Label>Status Manual</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(v) => setFormData({ ...formData, status: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Automático">Automático (por data)</SelectItem>
+                    <SelectItem value="Devedor">Devedor (Manual)</SelectItem>
+                    <SelectItem value="Vencido +30d">Vencido +30d (Manual)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Observação 1</Label>
                 <Input
                   value={formData.obs1}
                   onChange={(e) => setFormData({ ...formData, obs1: e.target.value })}
-                  placeholder="Detalhes..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Observação 2</Label>
-                <Input
-                  value={formData.obs2}
-                  onChange={(e) => setFormData({ ...formData, obs2: e.target.value })}
-                  placeholder="Mais detalhes..."
                 />
               </div>
             </div>

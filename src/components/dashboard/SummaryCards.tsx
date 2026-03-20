@@ -9,61 +9,49 @@ export function SummaryCards({ transactions = [] }: { transactions?: Transaction
       ? transactions.find((x) => x.id === t.originalTxId)?.type || t.type
       : t.type
 
-  const commTypes = ['Renovação de Cliente', 'Venda para Revenda', 'Taxa de Ativação']
-
   const metrics = (transactions || []).reduce(
     (acc, t) => {
       const effType = getEffType(t)
-      if (commTypes.includes(effType)) {
-        acc.commRev += t.entry
-        acc.commCost += t.cost
+      if (['Renovação de Cliente', 'Venda para Revenda', 'Taxa de Ativação'].includes(effType)) {
+        acc.faturamento += t.entry
+        acc.lucro += t.profit
       }
-      if (
-        [
-          'Compra de Estoque',
-          'Compra de Ativação',
-          'Gastos Avulsos',
-          'Pagamento de Contas',
-        ].includes(effType)
-      ) {
-        // For expenses, absolute value of cost/profit depending on entry
-        acc.opCost += Math.abs(t.profit < 0 ? t.profit : t.cost)
+      if (['Compra de Estoque', 'Compra de Ativação'].includes(effType)) {
+        acc.custoEstoque += t.cost || Math.abs(t.profit)
       }
-      if (effType === 'Outras Entradas') {
-        acc.otherIn += t.entry
+      if (['Gastos Avulsos', 'Pagamento de Contas', 'Outras Saídas'].includes(effType)) {
+        acc.outrosCustos += t.cost || Math.abs(t.profit)
       }
       return acc
     },
-    { commRev: 0, commCost: 0, opCost: 0, otherIn: 0 },
+    { faturamento: 0, lucro: 0, custoEstoque: 0, outrosCustos: 0 },
   )
-
-  const commProfit = metrics.commRev - metrics.commCost
 
   const cards = [
     {
-      title: 'Faturamento Comercial',
-      value: metrics.commRev,
+      title: 'Faturamento Total',
+      value: metrics.faturamento,
       icon: TrendingUp,
       trend: '+12%',
       color: 'text-primary',
     },
     {
-      title: 'Lucro Comercial',
-      value: commProfit,
+      title: 'Lucro Líquido',
+      value: metrics.lucro,
       icon: ArrowUpRight,
       trend: '+8%',
-      color: 'text-primary',
+      color: 'text-green-500',
     },
     {
-      title: 'Custo Comercial (Tiers)',
-      value: metrics.commCost,
+      title: 'Custo de Estoque',
+      value: metrics.custoEstoque,
       icon: Wallet,
       trend: '-2%',
-      color: 'text-secondary',
+      color: 'text-orange-500',
     },
     {
-      title: 'Custo Operacional',
-      value: metrics.opCost,
+      title: 'Outros Custos',
+      value: metrics.outrosCustos,
       icon: ArrowDownRight,
       trend: '+5%',
       color: 'text-destructive',

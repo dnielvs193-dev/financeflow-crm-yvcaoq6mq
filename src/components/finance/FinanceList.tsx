@@ -22,27 +22,24 @@ import {
 import useMainStore from '@/stores/useMainStore'
 import { Transaction } from '@/types'
 import { formatDate, formatCurrency } from '@/lib/formatters'
-import { RotateCcw } from 'lucide-react'
+import { Trash } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export function FinanceList({ transactions }: { transactions: Transaction[] }) {
-  const { banks, processTransaction, inventory, tiers } = useMainStore()
+  const { banks, deleteTransaction } = useMainStore()
   const { toast } = useToast()
 
-  const handleReversal = (id: string) => {
-    processTransaction({ action: 'reverse', originalId: id })
+  const handleDelete = (id: string) => {
+    deleteTransaction(id)
     toast({
-      title: 'Estorno realizado com sucesso.',
-      description: 'Saldos e estoque foram atualizados.',
-      variant: 'destructive',
+      title: 'Registro apagado',
+      description: 'A transação foi removida e os saldos revertidos.',
     })
   }
 
   const getTypeColor = (type: string) => {
     if (type.includes('Renovação') || type.includes('Venda') || type === 'Outras Entradas')
       return 'bg-primary/15 text-primary'
-    if (type.includes('Estorno'))
-      return 'bg-destructive/15 text-destructive border-destructive/30 border'
     if (type.includes('Transferência'))
       return 'bg-secondary/15 text-secondary border-secondary/30 border'
     return 'bg-orange-500/15 text-orange-600'
@@ -50,31 +47,20 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
 
   return (
     <div className="rounded-md border bg-card overflow-x-auto">
-      <Table className="min-w-[1100px]">
+      <Table className="min-w-[900px]">
         <TableHeader>
           <TableRow>
             <TableHead>Data / Tipo</TableHead>
-            <TableHead>Descrição / Obs</TableHead>
-            <TableHead>Item / Serviço / Faixa</TableHead>
+            <TableHead>Descrição</TableHead>
             <TableHead>Banco(s)</TableHead>
             <TableHead className="text-right">Finanças</TableHead>
-            <TableHead className="text-right w-[80px]">Audit</TableHead>
+            <TableHead className="text-right w-[60px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {transactions.map((t) => {
-            const isReversible =
-              t.type !== 'Estorno Financeiro' &&
-              !t.isReversal &&
-              !transactions.some((rt) => revCheck(rt, t.id))
-            const item = t.itemId ? inventory.find((i) => i.id === t.itemId) : null
-            const tier = t.tierRef ? tiers.find((ti) => ti.id === t.tierRef) : null
-
             return (
-              <TableRow
-                key={t.id}
-                className={t.type === 'Estorno Financeiro' ? 'opacity-70 bg-destructive/5' : ''}
-              >
+              <TableRow key={t.id}>
                 <TableCell>
                   <div className="font-medium text-sm whitespace-nowrap">{formatDate(t.date)}</div>
                   <Badge variant="outline" className={`mt-1 text-[10px] ${getTypeColor(t.type)}`}>
@@ -82,22 +68,10 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium max-w-[280px] truncate" title={t.description}>
-                    {t.description}
+                  <div className="font-medium max-w-[350px] truncate" title={t.description}>
+                    {t.description} {t.service ? `(${t.service})` : ''}
                   </div>
                   {t.obs && <div className="text-xs text-muted-foreground mt-0.5">{t.obs}</div>}
-                </TableCell>
-                <TableCell>
-                  {(t.service || item) && (
-                    <div className="font-medium text-sm">
-                      {t.service || item?.name} {t.qty ? `(x${t.qty})` : ''}
-                    </div>
-                  )}
-                  {tier && (
-                    <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                      Ref: Tier {tier.startQty}-{tier.endQty || '∞'}
-                    </div>
-                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs font-medium">
                   {t.splitDistribution ? (
@@ -149,56 +123,47 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
                         )}
                       </>
                     )}
-                    {t.profitPercentage !== undefined && t.profitPercentage > 0 && (
-                      <div className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-medium w-fit mt-0.5">
-                        {t.profitPercentage.toFixed(0)}% mg
-                      </div>
-                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  {isReversible && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="border-destructive/30">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                          <Trash className="h-5 w-5" /> Excluir Lançamento
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Deseja excluir permanentemente este registro? <br />
+                          Os saldos bancários e o estoque (se aplicável) serão revertidos.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(t.id)}
+                          className="bg-destructive hover:bg-destructive/90 text-white"
                         >
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="border-destructive/30">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="text-destructive flex items-center gap-2">
-                            <RotateCcw className="h-5 w-5" /> Confirmar reversão
-                          </AlertDialogTitle>
-                          <AlertDialogDescription className="text-foreground pt-2">
-                            O estorno desfará os impactos desta transação nos saldos e estoque,
-                            criando um registro de compensação cruzado. <br />
-                            <br />
-                            <strong>Esta ação é irreversível.</strong>
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleReversal(t.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Confirmar Estorno
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </TableCell>
               </TableRow>
             )
           })}
           {transactions.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                 Nenhum lançamento encontrado.
               </TableCell>
             </TableRow>
@@ -207,8 +172,4 @@ export function FinanceList({ transactions }: { transactions: Transaction[] }) {
       </Table>
     </div>
   )
-}
-
-function revCheck(rt: Transaction, id: string) {
-  return rt.type === 'Estorno Financeiro' && rt.originalTxId === id
 }

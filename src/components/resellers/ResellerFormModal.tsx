@@ -103,7 +103,6 @@ export function ResellerFormModal({ reseller }: { reseller?: Reseller }) {
               placeholder="Nome do revendedor"
             />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Status</Label>
@@ -133,7 +132,6 @@ export function ResellerFormModal({ reseller }: { reseller?: Reseller }) {
               />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>WhatsApp/Contato</Label>
@@ -152,7 +150,6 @@ export function ResellerFormModal({ reseller }: { reseller?: Reseller }) {
               />
             </div>
           </div>
-
           <div className="grid gap-2">
             <Label>Intenção de Compra</Label>
             <Input
@@ -161,7 +158,6 @@ export function ResellerFormModal({ reseller }: { reseller?: Reseller }) {
               placeholder="Ex: Alta, Baixa, Estudando propostas"
             />
           </div>
-
           <div className="grid gap-2">
             <Label>Observações</Label>
             <Textarea
@@ -171,7 +167,6 @@ export function ResellerFormModal({ reseller }: { reseller?: Reseller }) {
               rows={3}
             />
           </div>
-
           <Button onClick={handleSubmit} className="w-full mt-4">
             {reseller ? 'Salvar Alterações' : 'Cadastrar Revenda'}
           </Button>

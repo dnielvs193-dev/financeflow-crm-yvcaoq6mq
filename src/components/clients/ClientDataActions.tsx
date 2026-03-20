@@ -26,7 +26,7 @@ function parseDate(dateStr: string) {
 }
 
 export function ClientDataActions() {
-  const { filteredClients, importClients } = useMainStore()
+  const { filteredClients, importClients, inventory } = useMainStore()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(1)
@@ -97,12 +97,15 @@ export function ClientDataActions() {
         if (statusRaw.toLowerCase().includes('devedor')) parsedStatus = 'Devedor'
         if (statusRaw.toLowerCase().includes('+30')) parsedStatus = 'Vencido +30d'
 
+        const srvName = serviceKey ? row[serviceKey] : 'Padrão'
+        const invItem = inventory.find((i) => i.name.toLowerCase() === srvName.toLowerCase())
+
         return {
           name: nameKey ? row[nameKey] : 'Desconhecido',
           phone: phoneKey ? row[phoneKey] : '',
-          service: serviceKey ? row[serviceKey] : 'Padrão',
+          service: srvName,
           price: price,
-          cost: 0,
+          cost: invItem ? invItem.unitCost : 0,
           expiryDate: dateKey ? parseDate(row[dateKey]) : new Date().toISOString(),
           status: parsedStatus as any,
           user: userKey ? row[userKey] : '',
@@ -184,7 +187,7 @@ export function ClientDataActions() {
                 </div>
                 <div className="text-xs text-muted-foreground pt-1">
                   Os valores importados como <strong>Preço M</strong> e <strong>Serviço</strong>{' '}
-                  serão utilizados automaticamente em futuras renovações.
+                  serão utilizados e os custos sincronizados automaticamente.
                 </div>
               </div>
               <Button onClick={handleConfirmImport} className="w-full">

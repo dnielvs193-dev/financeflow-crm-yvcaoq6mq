@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -18,14 +18,29 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import useMainStore from '@/stores/useMainStore'
-import { InventoryCategory } from '@/types'
+import { InventoryCategory, InventoryItem } from '@/types'
 import { Plus, Trash } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
-export function InventoryFormModal() {
-  const { saveInventoryItem } = useMainStore()
+interface InventoryFormModalProps {
+  itemToEdit?: InventoryItem
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function InventoryFormModal({
+  itemToEdit,
+  open: controlledOpen,
+  onOpenChange,
+}: InventoryFormModalProps) {
+  const { saveInventoryItem, updateInventoryItem, tiers } = useMainStore()
   const { toast } = useToast()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? onOpenChange! : setInternalOpen
+
   const [formData, setFormData] = useState({
     name: '',
     category: 'Revenda' as InventoryCategory,
@@ -37,6 +52,45 @@ export function InventoryFormModal() {
   })
   const [tierData, setTierData] = useState([{ startQty: 1, endQty: '', unitPrice: '' }])
 
+  useEffect(() => {
+    if (itemToEdit && open) {
+      setFormData({
+        name: itemToEdit.name,
+        category: itemToEdit.category,
+        status: itemToEdit.status,
+        stockControl: itemToEdit.stockControl,
+        currentStock: itemToEdit.currentStock.toString(),
+        unitCost: itemToEdit.unitCost.toString(),
+        obs: itemToEdit.observations || '',
+      })
+      const itemTiers = tiers
+        .filter((t) => t.itemId === itemToEdit.id)
+        .sort((a, b) => a.startQty - b.startQty)
+      if (itemTiers.length > 0) {
+        setTierData(
+          itemTiers.map((t) => ({
+            startQty: t.startQty,
+            endQty: t.endQty ? t.endQty.toString() : '',
+            unitPrice: t.unitPrice.toString(),
+          })),
+        )
+      } else {
+        setTierData([{ startQty: 1, endQty: '', unitPrice: '' }])
+      }
+    } else if (!itemToEdit && open) {
+      setFormData({
+        name: '',
+        category: 'Revenda',
+        status: 'Ativo',
+        stockControl: true,
+        currentStock: '0',
+        unitCost: '',
+        obs: '',
+      })
+      setTierData([{ startQty: 1, endQty: '', unitPrice: '' }])
+    }
+  }, [itemToEdit, open, tiers])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const parsedTiers = tierData.map((t) => ({
@@ -45,42 +99,38 @@ export function InventoryFormModal() {
       unitPrice: Number(t.unitPrice),
     }))
 
-    saveInventoryItem(
-      {
-        name: formData.name,
-        category: formData.category,
-        stockControl: formData.stockControl,
-        currentStock: Number(formData.currentStock) || 0,
-        unitCost: Number(formData.unitCost) || 0,
-        status: formData.status,
-        observations: formData.obs,
-      },
-      parsedTiers,
-    )
-    toast({ title: 'Item cadastrado com sucesso!' })
+    const payload = {
+      name: formData.name,
+      category: formData.category,
+      stockControl: formData.stockControl,
+      currentStock: Number(formData.currentStock) || 0,
+      unitCost: Number(formData.unitCost) || 0,
+      status: formData.status,
+      observations: formData.obs,
+    }
+
+    if (itemToEdit) {
+      updateInventoryItem(itemToEdit.id, payload, parsedTiers)
+      toast({ title: 'Item atualizado com sucesso!' })
+    } else {
+      saveInventoryItem(payload, parsedTiers)
+      toast({ title: 'Item cadastrado com sucesso!' })
+    }
     setOpen(false)
-    setFormData({
-      name: '',
-      category: 'Revenda',
-      status: 'Ativo',
-      stockControl: true,
-      currentStock: '0',
-      unitCost: '',
-      obs: '',
-    })
-    setTierData([{ startQty: 1, endQty: '', unitPrice: '' }])
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Item
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Item
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cadastrar Estoque / Serviço</DialogTitle>
+          <DialogTitle>{itemToEdit ? 'Editar Item' : 'Cadastrar Estoque / Serviço'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
@@ -116,7 +166,6 @@ export function InventoryFormModal() {
                 type="number"
                 step="0.01"
                 required
-                placeholder="Ex: 5.00"
                 value={formData.unitCost}
                 onChange={(e) => setFormData({ ...formData, unitCost: e.target.value })}
               />
@@ -141,7 +190,6 @@ export function InventoryFormModal() {
             <div className="space-y-2 col-span-2">
               <Label>Observações</Label>
               <Input
-                placeholder="Detalhes internos..."
                 value={formData.obs}
                 onChange={(e) => setFormData({ ...formData, obs: e.target.value })}
               />
@@ -161,7 +209,6 @@ export function InventoryFormModal() {
               <Input
                 type="number"
                 className="w-24 h-8"
-                placeholder="Qtd Inicial"
                 value={formData.currentStock}
                 onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
               />
@@ -170,9 +217,6 @@ export function InventoryFormModal() {
 
           <div className="space-y-3 mt-2 border-t pt-4">
             <Label className="text-base font-semibold">Faixas de Preço de Venda (Tiers)</Label>
-            <p className="text-xs text-muted-foreground mb-2">
-              Defina o preço de venda de acordo com a quantidade (ex: 1-9 un, 10+ un).
-            </p>
             {tierData.map((tier, idx) => (
               <div key={idx} className="flex gap-2 items-end bg-muted/10 p-2 rounded border">
                 <div className="space-y-1 flex-1">
@@ -190,7 +234,7 @@ export function InventoryFormModal() {
                   />
                 </div>
                 <div className="space-y-1 flex-1">
-                  <Label className="text-xs text-muted-foreground">Até (Vazio = Infinito)</Label>
+                  <Label className="text-xs text-muted-foreground">Até (Vazio = ∞)</Label>
                   <Input
                     type="number"
                     min="1"
@@ -235,11 +279,11 @@ export function InventoryFormModal() {
               onClick={() => setTierData([...tierData, { startQty: 1, endQty: '', unitPrice: '' }])}
               className="w-full border-dashed mt-2"
             >
-              + Adicionar Faixa de Preço
+              + Adicionar Faixa
             </Button>
           </div>
           <Button type="submit" className="mt-4">
-            Salvar Item
+            {itemToEdit ? 'Salvar Alterações' : 'Salvar Item'}
           </Button>
         </form>
       </DialogContent>

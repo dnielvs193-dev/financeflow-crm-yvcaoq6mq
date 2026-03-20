@@ -27,5 +27,7 @@ export const getClientStatus = (expiryDate: string, manualStatus?: string | null
   const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) return 'Vencido'
+  if (diffDays === 0) return 'Vence Hoje'
+  if (diffDays === 1) return 'Vence Amanhã'
   return 'Ativo'
 }

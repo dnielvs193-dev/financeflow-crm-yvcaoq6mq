@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -7,11 +8,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import useMainStore from '@/stores/useMainStore'
 import { formatCurrency } from '@/lib/formatters'
+import { Edit } from 'lucide-react'
+import { InventoryFormModal } from './InventoryFormModal'
+import { InventoryItem } from '@/types'
 
 export function InventoryList() {
   const { inventory, tiers } = useMainStore()
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
 
   const getCategoryColor = (cat: string) => {
     switch (cat) {
@@ -26,6 +32,13 @@ export function InventoryList() {
 
   return (
     <div className="rounded-md border bg-card overflow-x-auto">
+      {editingItem && (
+        <InventoryFormModal
+          itemToEdit={editingItem}
+          open={!!editingItem}
+          onOpenChange={(op) => !op && setEditingItem(null)}
+        />
+      )}
       <Table className="min-w-[800px]">
         <TableHeader>
           <TableRow>
@@ -34,6 +47,7 @@ export function InventoryList() {
             <TableHead>Estoque Atual</TableHead>
             <TableHead>Faixas de Venda (Tiers)</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="text-right">Ação</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -101,12 +115,17 @@ export function InventoryList() {
                     {item.status}
                   </Badge>
                 </TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" onClick={() => setEditingItem(item)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             )
           })}
           {inventory.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                 Nenhum item cadastrado.
               </TableCell>
             </TableRow>

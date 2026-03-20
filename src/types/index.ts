@@ -1,4 +1,11 @@
-export type ClientStatus = 'Devedor' | 'Vencido +30d' | null
+export type ClientStatus =
+  | 'Devedor'
+  | 'Vencido +30d'
+  | 'Vence Hoje'
+  | 'Vence Amanhã'
+  | 'Vencido'
+  | 'Ativo'
+  | null
 
 export type Client = {
   id: string
@@ -19,6 +26,7 @@ export type Client = {
   dkey?: string
   panel?: string
   deleted?: boolean
+  classification?: string
 }
 
 export type TransactionType =
@@ -104,4 +112,18 @@ export type Reseller = {
   clientCount: number
   purchaseIntention?: string
   registrationDate: string
+}
+
+export type PayableCategory = 'Contas Fixas' | 'Dívidas' | 'Outros Gastos'
+
+export type PayableStatus = 'Pendente' | 'Pago'
+
+export type Payable = {
+  id: string
+  description: string
+  category: PayableCategory
+  dueDate: string
+  amount: number
+  status: PayableStatus
+  paymentDate?: string
 }

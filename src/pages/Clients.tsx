@@ -10,10 +10,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import useMainStore from '@/stores/useMainStore'
-import { Search } from 'lucide-react'
+import { Search, Users, UserCheck, Clock, UserX } from 'lucide-react'
+import { getClientStatus } from '@/lib/formatters'
 
 export default function Clients() {
   const {
+    clients,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -21,6 +23,18 @@ export default function Clients() {
     serviceFilter,
     setServiceFilter,
   } = useMainStore()
+
+  const activeClients = clients.filter((c) => !c.deleted)
+  const total = activeClients.length
+  const ativos = activeClients.filter((c) =>
+    ['Ativo', 'Vence Hoje', 'Vence Amanhã'].includes(getClientStatus(c.expiryDate, c.status) || ''),
+  ).length
+  const vencidos = activeClients.filter(
+    (c) => getClientStatus(c.expiryDate, c.status) === 'Vencido',
+  ).length
+  const devedores = activeClients.filter((c) =>
+    ['Devedor', 'Vencido +30d'].includes(getClientStatus(c.expiryDate, c.status) || ''),
+  ).length
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up">
@@ -34,6 +48,45 @@ export default function Clients() {
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
           <ClientDataActions />
           <ClientFormModal />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-card p-4 rounded-lg border shadow-sm flex items-center gap-3">
+          <div className="p-2 bg-primary/10 text-primary rounded-md">
+            <Users className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Total Clientes</p>
+            <p className="text-xl font-bold">{total}</p>
+          </div>
+        </div>
+        <div className="bg-card p-4 rounded-lg border shadow-sm flex items-center gap-3">
+          <div className="p-2 bg-green-500/10 text-green-500 rounded-md">
+            <UserCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Ativos</p>
+            <p className="text-xl font-bold">{ativos}</p>
+          </div>
+        </div>
+        <div className="bg-card p-4 rounded-lg border shadow-sm flex items-center gap-3">
+          <div className="p-2 bg-red-500/10 text-red-500 rounded-md">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Vencidos</p>
+            <p className="text-xl font-bold">{vencidos}</p>
+          </div>
+        </div>
+        <div className="bg-card p-4 rounded-lg border shadow-sm flex items-center gap-3">
+          <div className="p-2 bg-orange-500/10 text-orange-500 rounded-md">
+            <UserX className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Devedores</p>
+            <p className="text-xl font-bold">{devedores}</p>
+          </div>
         </div>
       </div>
 
@@ -54,6 +107,8 @@ export default function Clients() {
           <SelectContent>
             <SelectItem value="all">Todos os Status</SelectItem>
             <SelectItem value="Ativo">Ativo</SelectItem>
+            <SelectItem value="Vence Hoje">Vence Hoje</SelectItem>
+            <SelectItem value="Vence Amanhã">Vence Amanhã</SelectItem>
             <SelectItem value="Vencido">Vencido</SelectItem>
             <SelectItem value="Devedor">Devedor</SelectItem>
             <SelectItem value="Vencido +30d">Vencido +30d</SelectItem>
