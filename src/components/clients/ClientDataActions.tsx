@@ -33,13 +33,33 @@ export function ClientDataActions() {
   const [previewData, setPreviewData] = useState<Omit<Client, 'id'>[]>([])
 
   const handleExport = () => {
-    const header = ['Nome', 'Telefone', 'Serviço', 'Status', 'Vencimento', 'Preço', 'Custo'].join(
-      ',',
-    )
-    const rows = filteredClients.map(
-      (c) =>
-        `${c.name},${c.phone},${c.service},${getClientStatus(c.expiryDate, c.status)},${c.expiryDate},${c.price},${c.cost}`,
-    )
+    const header = [
+      'Serviço',
+      'Status',
+      'Nome',
+      'Usuário',
+      'Senha',
+      'Vencimento',
+      'Telefone',
+      'Obs1',
+      'Obs2',
+      'Cidade',
+      'MAC',
+      'D_Key',
+      'Preço',
+      'Custo',
+    ].join(';')
+
+    const rows = filteredClients.map((c) => {
+      const expDate = new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date(c.expiryDate))
+
+      return `${c.service};${getClientStatus(c.expiryDate, c.status)};${c.name};${c.user || ''};${c.password || ''};${expDate};${c.phone};${c.obs1 || ''};${c.obs2 || ''};${c.city || ''};${c.mac || ''};${c.dkey || ''};${c.price};${c.cost}`
+    })
+
     const csvContent = 'data:text/csv;charset=utf-8,' + [header, ...rows].join('\n')
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement('a')
@@ -57,29 +77,50 @@ export function ClientDataActions() {
     const reader = new FileReader()
     reader.onload = (evt) => {
       const text = evt.target?.result as string
-      const lines = text.split('\n').filter((l) => l.trim().length > 0)
+      // Use robust regex to split lines to ensure full data processing without limits
+      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0)
       if (lines.length < 2) {
         return toast({ title: 'Arquivo vazio ou inválido', variant: 'destructive' })
       }
 
       const delimiter = lines[0].includes(';') ? ';' : ','
-      const headers = lines[0].split(delimiter).map((h) => h.trim().toLowerCase())
+
+      // Custom split function to handle optional quotes inside CSV columns
+      const splitLine = (line: string) => {
+        const result = []
+        let current = ''
+        let inQuotes = false
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i]
+          if (char === '"') {
+            inQuotes = !inQuotes
+          } else if (char === delimiter && !inQuotes) {
+            result.push(current)
+            current = ''
+          } else {
+            current += char
+          }
+        }
+        result.push(current)
+        return result.map((v) => v.trim())
+      }
+
+      const headers = splitLine(lines[0]).map((h) => h.toLowerCase())
 
       const parsed = lines.slice(1).map((line) => {
-        const values = line.split(delimiter)
+        const values = splitLine(line)
         const obj: Record<string, string> = {}
         headers.forEach((h, i) => {
-          obj[h] = values[i] ? values[i].trim() : ''
+          obj[h] = values[i] || ''
         })
-        return obj
+        return { row: obj, values }
       })
 
-      const mappedClients = parsed.map((row) => {
+      const mappedClients = parsed.map(({ row, values }) => {
         const findKey = (keys: string[]) =>
           headers.find((h) => keys.some((k) => h === k || h.includes(k)))
         const nameKey = findKey(['nome', 'name'])
         const phoneKey = findKey(['whatsapp', 'telefone', 'celular', 'phone'])
-        const serviceKey = findKey(['serviço', 'servico', 'service'])
         const statusKey = findKey(['status'])
         const passKey = findKey(['senha', 'password'])
         const dateKey = findKey(['vencimento', 'data', 'expiry'])
@@ -88,7 +129,6 @@ export function ClientDataActions() {
         const macKey = findKey(['mac'])
         const dkeyKey = findKey(['d_key', 'dkey', 'd-key'])
         const priceKey = findKey(['preço', 'preco', 'mensalidade', 'valor', 'price', 'preço m'])
-        const costKey = findKey(['custo', 'cost'])
         const panelKey = findKey(['painel', 'panel'])
         const obs1Key = findKey(['obs1', 'observação', 'observacao', 'obs'])
         const obs2Key = findKey(['obs2'])
@@ -99,26 +139,36 @@ export function ClientDataActions() {
             .toString()
             .trim()
             .replace(/R\$\s*/g, '')
-          if (/,/.test(str)) {
+          if (/,/.test(str) && /\./.test(str)) {
             str = str.replace(/\./g, '').replace(',', '.')
+          } else if (/,/.test(str)) {
+            str = str.replace(',', '.')
           }
           return parseFloat(str) || 0
         }
 
         const price =
-          priceKey && row[priceKey] !== undefined && row[priceKey].trim() !== ''
+          priceKey && row[priceKey] !== undefined && row[priceKey] !== ''
             ? parseCurrency(row[priceKey])
             : 0
 
-        const srvName = serviceKey && row[serviceKey] ? row[serviceKey].trim() : 'Padrão'
+        // Service Mapping: Explicitly read from Column A (Index 0)
+        const rawService = values[0] || ''
+        const srvName = rawService !== '' ? rawService : 'Padrão'
+
+        // Relational check with Inventory Items
         const invItem = inventory.find((i) => i.name.toLowerCase() === srvName.toLowerCase())
 
-        const cost =
-          costKey && row[costKey] !== undefined && row[costKey].trim() !== ''
-            ? parseCurrency(row[costKey])
-            : invItem
-              ? invItem.unitCost
-              : 0
+        // Cost Mapping: Explicitly read from Column N (Index 13)
+        const rawCost = values.length > 13 ? values[13] : ''
+        let cost = 0
+
+        // CSV value takes precedence over system default
+        if (rawCost !== '') {
+          cost = parseCurrency(rawCost)
+        } else if (invItem) {
+          cost = invItem.unitCost
+        }
 
         const statusRaw = statusKey ? row[statusKey] : ''
         let parsedStatus = null
@@ -130,26 +180,26 @@ export function ClientDataActions() {
           statusRaw.toLowerCase().includes('excluído')
         ) {
           parsedStatus = 'Excluído'
-          isDeleted = false // Keep them visible as per acceptance criteria
+          isDeleted = false // Keep them visible
         }
 
         return {
-          name: nameKey ? row[nameKey].trim() : 'Desconhecido',
-          phone: phoneKey ? row[phoneKey].trim() : '',
+          name: nameKey && row[nameKey] ? row[nameKey] : 'Desconhecido',
+          phone: phoneKey && row[phoneKey] ? row[phoneKey] : '',
           service: srvName,
           price: price,
           cost: cost,
-          expiryDate: dateKey ? parseDate(row[dateKey]) : new Date().toISOString(),
+          expiryDate: dateKey && row[dateKey] ? parseDate(row[dateKey]) : new Date().toISOString(),
           status: parsedStatus as any,
           deleted: isDeleted,
-          user: userKey ? row[userKey].trim() : '',
-          password: passKey ? row[passKey].trim() : '',
-          city: cityKey ? row[cityKey].trim() : '',
-          mac: macKey ? row[macKey].trim() : '',
-          dkey: dkeyKey ? row[dkeyKey].trim() : '',
-          panel: panelKey ? row[panelKey].trim() : '',
-          obs1: obs1Key ? row[obs1Key].trim() : '',
-          obs2: obs2Key ? row[obs2Key].trim() : '',
+          user: userKey && row[userKey] ? row[userKey] : '',
+          password: passKey && row[passKey] ? row[passKey] : '',
+          city: cityKey && row[cityKey] ? row[cityKey] : '',
+          mac: macKey && row[macKey] ? row[macKey] : '',
+          dkey: dkeyKey && row[dkeyKey] ? row[dkeyKey] : '',
+          panel: panelKey && row[panelKey] ? row[panelKey] : '',
+          obs1: obs1Key && row[obs1Key] ? row[obs1Key] : '',
+          obs2: obs2Key && row[obs2Key] ? row[obs2Key] : '',
         }
       })
 
@@ -202,8 +252,8 @@ export function ClientDataActions() {
                   Clique ou arraste seu arquivo .CSV aqui
                 </div>
                 <div className="text-xs text-muted-foreground mb-4">
-                  Colunas suportadas: Nome, WhatsApp, Serviço, Preço M, Custo, Vencimento, Usuário,
-                  Senha, Cidade, MAC, D_Key, Painel, Obs1, Obs2
+                  O sistema reconhecerá automaticamente: Coluna A (Serviço) e Coluna N (Custo).
+                  Nenhum limite de registros.
                 </div>
                 <Button variant="secondary" className="pointer-events-none">
                   Selecionar Arquivo
@@ -222,8 +272,9 @@ export function ClientDataActions() {
                   <strong className="text-lg">{previewData.length}</strong>
                 </div>
                 <div className="text-xs text-muted-foreground pt-1">
-                  Os valores importados como <strong>Serviço</strong> e <strong>Custo</strong> serão
-                  mapeados corretamente para cada registro.
+                  Os valores importados como <strong>Serviço</strong> (Coluna A) e{' '}
+                  <strong>Custo</strong> (Coluna N) serão mapeados e preservados de forma
+                  relacional.
                 </div>
               </div>
               <Button onClick={handleConfirmImport} className="w-full">
