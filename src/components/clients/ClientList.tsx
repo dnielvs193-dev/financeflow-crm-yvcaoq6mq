@@ -13,7 +13,7 @@ import useMainStore from '@/stores/useMainStore'
 import { Client } from '@/types'
 import { ClientStatusBadge } from './ClientStatusBadge'
 import { formatDate, formatCurrency, getClientStatus } from '@/lib/formatters'
-import { MoreVertical, Phone, Trash, Edit, MessageSquare, Tag, LifeBuoy } from 'lucide-react'
+import { MoreVertical, Phone, Trash, Edit } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
@@ -208,9 +208,9 @@ export function ClientList() {
                     <h3 className="font-bold text-base flex items-center gap-1">
                       {client.classification} {client.name}
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {client.service} • {formatCurrency(client.price)}
-                    </p>
+                    </div>
                     {count > 1 && (
                       <Badge
                         variant="secondary"
