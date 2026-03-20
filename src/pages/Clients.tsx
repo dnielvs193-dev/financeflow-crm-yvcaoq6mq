@@ -41,9 +41,9 @@ export default function Clients() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Gestão de Clientes</h2>
-          <p className="text-muted-foreground text-sm">
+          <div className="text-muted-foreground text-sm">
             Gerencie assinaturas, controle vencimentos e automatize renovações.
-          </p>
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
           <ClientDataActions />
@@ -57,8 +57,8 @@ export default function Clients() {
             <Users className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Clientes</p>
-            <p className="text-xl font-bold">{total}</p>
+            <div className="text-sm text-muted-foreground">Total Clientes</div>
+            <div className="text-xl font-bold">{total}</div>
           </div>
         </div>
         <div className="bg-card p-4 rounded-lg border shadow-sm flex items-center gap-3">
@@ -66,8 +66,8 @@ export default function Clients() {
             <UserCheck className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Ativos</p>
-            <p className="text-xl font-bold">{ativos}</p>
+            <div className="text-sm text-muted-foreground">Ativos</div>
+            <div className="text-xl font-bold">{ativos}</div>
           </div>
         </div>
         <div className="bg-card p-4 rounded-lg border shadow-sm flex items-center gap-3">
@@ -75,8 +75,8 @@ export default function Clients() {
             <Clock className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Vencidos</p>
-            <p className="text-xl font-bold">{vencidos}</p>
+            <div className="text-sm text-muted-foreground">Vencidos</div>
+            <div className="text-xl font-bold">{vencidos}</div>
           </div>
         </div>
         <div className="bg-card p-4 rounded-lg border shadow-sm flex items-center gap-3">
@@ -84,8 +84,8 @@ export default function Clients() {
             <UserX className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Devedores</p>
-            <p className="text-xl font-bold">{devedores}</p>
+            <div className="text-sm text-muted-foreground">Devedores</div>
+            <div className="text-xl font-bold">{devedores}</div>
           </div>
         </div>
       </div>

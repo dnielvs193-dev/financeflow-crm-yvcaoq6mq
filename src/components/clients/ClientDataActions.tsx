@@ -164,11 +164,13 @@ export function ClientDataActions() {
                   onChange={handleFileUpload}
                 />
                 <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-4" />
-                <p className="text-sm font-medium mb-1">Clique ou arraste seu arquivo .CSV aqui</p>
-                <p className="text-xs text-muted-foreground mb-4">
+                <div className="text-sm font-medium mb-1">
+                  Clique ou arraste seu arquivo .CSV aqui
+                </div>
+                <div className="text-xs text-muted-foreground mb-4">
                   Colunas suportadas: Nome, WhatsApp, Serviço, Preço M, Vencimento, Usuário, Senha,
                   Cidade, MAC, D_Key, Painel, Obs1, Obs2
-                </p>
+                </div>
                 <Button variant="secondary" className="pointer-events-none">
                   Selecionar Arquivo
                 </Button>
@@ -178,7 +180,7 @@ export function ClientDataActions() {
             <div className="space-y-4 py-4 animate-fade-in-up">
               <div className="flex items-center gap-2 text-green-600 mb-2">
                 <CheckCircle2 className="h-5 w-5" />
-                <p className="text-sm font-medium">Arquivo processado com sucesso</p>
+                <div className="text-sm font-medium">Arquivo processado com sucesso</div>
               </div>
               <div className="bg-muted p-4 rounded-md text-sm space-y-2">
                 <div className="flex justify-between border-b border-border/50 pb-2">
