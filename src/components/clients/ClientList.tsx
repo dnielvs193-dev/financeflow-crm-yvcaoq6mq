@@ -100,7 +100,7 @@ export function ClientList() {
               >
                 Cliente {sortCol === 'name' && (sortDesc ? '↓' : '↑')}
               </TableHead>
-              <TableHead>Serviço / Preço</TableHead>
+              <TableHead>Serviço / Venda (Custo)</TableHead>
               <TableHead
                 className="cursor-pointer hover:bg-muted/50 w-[180px]"
                 onClick={() => handleSort('expiryDate')}
@@ -138,7 +138,8 @@ export function ClientList() {
                   <TableCell>
                     <div className="text-sm font-bold text-primary">{client.service}</div>
                     <div className="text-xs font-medium text-muted-foreground mb-1">
-                      {formatCurrency(client.price)}
+                      {formatCurrency(client.price)}{' '}
+                      <span className="opacity-60">| Custo: {formatCurrency(client.cost)}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -209,7 +210,8 @@ export function ClientList() {
                       {client.classification} {client.name}
                     </h3>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {client.service} • {formatCurrency(client.price)}
+                      {client.service} • Venda: {formatCurrency(client.price)} | Custo:{' '}
+                      {formatCurrency(client.cost)}
                     </div>
                     {count > 1 && (
                       <Badge

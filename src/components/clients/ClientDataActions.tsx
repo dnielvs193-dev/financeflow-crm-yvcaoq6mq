@@ -33,10 +33,12 @@ export function ClientDataActions() {
   const [previewData, setPreviewData] = useState<Omit<Client, 'id'>[]>([])
 
   const handleExport = () => {
-    const header = ['Nome', 'Telefone', 'Serviço', 'Status', 'Vencimento', 'Preço'].join(',')
+    const header = ['Nome', 'Telefone', 'Serviço', 'Status', 'Vencimento', 'Preço', 'Custo'].join(
+      ',',
+    )
     const rows = filteredClients.map(
       (c) =>
-        `${c.name},${c.phone},${c.service},${getClientStatus(c.expiryDate, c.status)},${c.expiryDate},${c.price}`,
+        `${c.name},${c.phone},${c.service},${getClientStatus(c.expiryDate, c.status)},${c.expiryDate},${c.price},${c.cost}`,
     )
     const csvContent = 'data:text/csv;charset=utf-8,' + [header, ...rows].join('\n')
     const encodedUri = encodeURI(csvContent)
@@ -73,7 +75,8 @@ export function ClientDataActions() {
       })
 
       const mappedClients = parsed.map((row) => {
-        const findKey = (keys: string[]) => headers.find((h) => keys.some((k) => h.includes(k)))
+        const findKey = (keys: string[]) =>
+          headers.find((h) => keys.some((k) => h === k || h.includes(k)))
         const nameKey = findKey(['nome', 'name'])
         const phoneKey = findKey(['whatsapp', 'telefone', 'celular', 'phone'])
         const serviceKey = findKey(['serviço', 'servico', 'service'])
@@ -83,31 +86,53 @@ export function ClientDataActions() {
         const userKey = findKey(['usuário', 'usuario', 'user'])
         const cityKey = findKey(['cidade', 'city'])
         const macKey = findKey(['mac'])
-        const dkeyKey = findKey(['d_key', 'dkey'])
+        const dkeyKey = findKey(['d_key', 'dkey', 'd-key'])
         const priceKey = findKey(['preço', 'preco', 'mensalidade', 'valor', 'price', 'preço m'])
+        const costKey = findKey(['custo', 'cost'])
         const panelKey = findKey(['painel', 'panel'])
         const obs1Key = findKey(['obs1', 'observação', 'observacao', 'obs'])
         const obs2Key = findKey(['obs2'])
 
-        const priceStr = priceKey ? row[priceKey] : '0'
-        const price = parseFloat(priceStr.replace('R$', '').replace(',', '.').trim()) || 0
+        const parseCurrency = (val: string) => {
+          if (!val) return 0
+          let str = val
+            .toString()
+            .trim()
+            .replace(/R\$\s*/g, '')
+          if (/,/.test(str)) {
+            str = str.replace(/\./g, '').replace(',', '.')
+          }
+          return parseFloat(str) || 0
+        }
+
+        const price = priceKey ? parseCurrency(row[priceKey]) : 0
+
+        const srvName = serviceKey && row[serviceKey] ? row[serviceKey] : 'Padrão'
+        const invItem = inventory.find((i) => i.name.toLowerCase() === srvName.toLowerCase())
+
+        const cost =
+          costKey && row[costKey] ? parseCurrency(row[costKey]) : invItem ? invItem.unitCost : 0
 
         const statusRaw = statusKey ? row[statusKey] : ''
         let parsedStatus = null
+        let isDeleted = false
         if (statusRaw.toLowerCase().includes('devedor')) parsedStatus = 'Devedor'
         if (statusRaw.toLowerCase().includes('+30')) parsedStatus = 'Vencido +30d'
-
-        const srvName = serviceKey ? row[serviceKey] : 'Padrão'
-        const invItem = inventory.find((i) => i.name.toLowerCase() === srvName.toLowerCase())
+        if (
+          statusRaw.toLowerCase().includes('excluido') ||
+          statusRaw.toLowerCase().includes('excluído')
+        )
+          isDeleted = true
 
         return {
           name: nameKey ? row[nameKey] : 'Desconhecido',
           phone: phoneKey ? row[phoneKey] : '',
           service: srvName,
           price: price,
-          cost: invItem ? invItem.unitCost : 0,
+          cost: cost,
           expiryDate: dateKey ? parseDate(row[dateKey]) : new Date().toISOString(),
           status: parsedStatus as any,
+          deleted: isDeleted,
           user: userKey ? row[userKey] : '',
           password: passKey ? row[passKey] : '',
           city: cityKey ? row[cityKey] : '',
@@ -168,8 +193,8 @@ export function ClientDataActions() {
                   Clique ou arraste seu arquivo .CSV aqui
                 </div>
                 <div className="text-xs text-muted-foreground mb-4">
-                  Colunas suportadas: Nome, WhatsApp, Serviço, Preço M, Vencimento, Usuário, Senha,
-                  Cidade, MAC, D_Key, Painel, Obs1, Obs2
+                  Colunas suportadas: Nome, WhatsApp, Serviço, Preço M, Custo, Vencimento, Usuário,
+                  Senha, Cidade, MAC, D_Key, Painel, Obs1, Obs2
                 </div>
                 <Button variant="secondary" className="pointer-events-none">
                   Selecionar Arquivo
@@ -188,8 +213,8 @@ export function ClientDataActions() {
                   <strong className="text-lg">{previewData.length}</strong>
                 </div>
                 <div className="text-xs text-muted-foreground pt-1">
-                  Os valores importados como <strong>Preço M</strong> e <strong>Serviço</strong>{' '}
-                  serão utilizados e os custos sincronizados automaticamente.
+                  Os valores importados como <strong>Serviço</strong> e <strong>Custo</strong> serão
+                  mapeados corretamente para cada registro.
                 </div>
               </div>
               <Button onClick={handleConfirmImport} className="w-full">

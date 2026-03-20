@@ -461,6 +461,13 @@ export function ClientFormModal({
                   onChange={(e) => setFormData({ ...formData, obs1: e.target.value })}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Observação 2</Label>
+                <Input
+                  value={formData.obs2}
+                  onChange={(e) => setFormData({ ...formData, obs2: e.target.value })}
+                />
+              </div>
             </div>
           </div>
           <div className="flex justify-end mt-4 border-t pt-4">
