@@ -71,12 +71,15 @@ export function ClientList() {
   }
 
   const handleWaClick = (client: Client, type: 'status' | 'credentials') => {
+    // Deep Cleaning: strip all non-digit characters
     let phone = cleanPhone(client.phone)
 
+    // Country Code Logic: Remove leading 0 if present
     if (phone.startsWith('0')) {
       phone = phone.substring(1)
     }
 
+    // Country Code Logic: Prepend 55 if not already present
     if (!phone.startsWith('55')) {
       phone = `55${phone}`
     }
@@ -102,8 +105,11 @@ export function ClientList() {
     }
 
     const msg = generateMessage(template, client)
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-    window.open(url, '_blank')
+    // Direct WhatsApp API Integration & Dynamic URL Generation
+    const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`
+
+    // Resilient Execution: Open in new tab securely
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const handleSort = (col: 'name' | 'service' | 'expiryDate') => {
