@@ -73,17 +73,21 @@ export function ClientList() {
   const handleWaClick = (client: Client, type: 'status' | 'credentials') => {
     let phone = cleanPhone(client.phone)
 
-    if (!phone || phone.length < 10 || phone.length > 13) {
+    if (phone.startsWith('0')) {
+      phone = phone.substring(1)
+    }
+
+    if (!phone.startsWith('55')) {
+      phone = `55${phone}`
+    }
+
+    if (phone.length < 12) {
       toast({
         title: 'Telefone inválido para envio.',
-        description: 'O numero de telefone deve conter entre 10 e 13 digitos',
+        description: 'O número sanitizado não possui dígitos suficientes para ser válido com DDD.',
         variant: 'destructive',
       })
       return
-    }
-
-    if (phone.length === 10 || phone.length === 11) {
-      phone = `55${phone}`
     }
 
     let template = templates.active
