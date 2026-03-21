@@ -71,11 +71,21 @@ export function ClientList() {
   }
 
   const handleWaClick = (client: Client, type: 'status' | 'credentials') => {
-    const phone = cleanPhone(client.phone)
-    if (!phone || phone.length < 10) {
-      toast({ title: 'Telefone inválido para envio.', variant: 'destructive' })
+    let phone = cleanPhone(client.phone)
+
+    if (!phone || phone.length < 10 || phone.length > 13) {
+      toast({
+        title: 'Telefone inválido para envio.',
+        description: 'O número deve conter entre 10 e 13 dígitos.',
+        variant: 'destructive',
+      })
       return
     }
+
+    if (phone.length === 10 || phone.length === 11) {
+      phone = `55${phone}`
+    }
+
     let template = templates.active
     if (type === 'credentials') {
       template = templates.credentials
