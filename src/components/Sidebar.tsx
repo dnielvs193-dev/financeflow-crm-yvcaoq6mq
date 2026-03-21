@@ -1,5 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Wallet, Box, Building2, Trash2, Network } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Wallet,
+  Box,
+  Building2,
+  Trash2,
+  Network,
+  Settings,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function Sidebar() {
@@ -12,6 +21,7 @@ export function Sidebar() {
     { href: '/finance', label: 'Extrato', icon: Wallet },
     { href: '/inventory', label: 'Estoque & Serviços', icon: Box },
     { href: '/banks', label: 'Bancos', icon: Building2 },
+    { href: '/settings', label: 'Configurações', icon: Settings },
     { href: '/trash', label: 'Lixeira', icon: Trash2 },
   ]
 

@@ -10,6 +10,7 @@ import Banks from './pages/Banks'
 import Trash from './pages/Trash'
 import Resellers from './pages/Resellers'
 import Payables from './pages/Payables'
+import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { MainStoreProvider } from './stores/useMainStore'
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/banks" element={<Banks />} />
             <Route path="/payables" element={<Payables />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/trash" element={<Trash />} />
           </Route>
           <Route path="*" element={<NotFound />} />

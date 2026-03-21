@@ -21,7 +21,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import useMainStore from '@/stores/useMainStore'
-import { getClientStatus } from '@/lib/formatters'
+import { getClientStatus, maskPhone } from '@/lib/formatters'
 import { useToast } from '@/hooks/use-toast'
 import { Client } from '@/types'
 
@@ -88,7 +88,6 @@ export function ClientDataActions() {
     const reader = new FileReader()
     reader.onload = (evt) => {
       const text = evt.target?.result as string
-      // Use robust regex to split lines to ensure full data processing without limits
       const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0)
       if (lines.length < 2) {
         return toast({ title: 'Arquivo vazio ou inválido', variant: 'destructive' })
@@ -96,7 +95,6 @@ export function ClientDataActions() {
 
       const delimiter = lines[0].includes(';') ? ';' : ','
 
-      // Custom split function to handle optional quotes inside CSV columns
       const splitLine = (line: string) => {
         const result = []
         let current = ''
@@ -163,18 +161,14 @@ export function ClientDataActions() {
             ? parseCurrency(row[priceKey])
             : 0
 
-        // Service Mapping: Explicitly read from Column A (Index 0)
         const rawService = values[0] || ''
         const srvName = rawService !== '' ? rawService : 'Padrão'
 
-        // Relational check with Inventory Items
         const invItem = inventory.find((i) => i.name.toLowerCase() === srvName.toLowerCase())
 
-        // Cost Mapping: Explicitly read from Column N (Index 13)
         const rawCost = values.length > 13 ? values[13] : ''
         let cost = 0
 
-        // CSV value takes precedence over system default
         if (rawCost !== '') {
           cost = parseCurrency(rawCost)
         } else if (invItem) {
@@ -191,12 +185,12 @@ export function ClientDataActions() {
           statusRaw.toLowerCase().includes('excluído')
         ) {
           parsedStatus = 'Excluído'
-          isDeleted = false // Keep them visible
+          isDeleted = false
         }
 
         return {
           name: nameKey && row[nameKey] ? row[nameKey] : 'Desconhecido',
-          phone: phoneKey && row[phoneKey] ? row[phoneKey] : '',
+          phone: phoneKey && row[phoneKey] ? maskPhone(row[phoneKey]) : '',
           service: srvName,
           price: price,
           cost: cost,

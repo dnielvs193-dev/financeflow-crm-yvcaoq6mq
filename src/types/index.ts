@@ -128,3 +128,10 @@ export type Payable = {
   status: PayableStatus
   paymentDate?: string
 }
+
+export type MessageTemplates = {
+  active: string
+  expired: string
+  deleted: string
+  credentials: string
+}

@@ -1,3 +1,5 @@
+import { Client } from '@/types'
+
 export const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -31,4 +33,28 @@ export const getClientStatus = (expiryDate: string, manualStatus?: string | null
   if (diffDays === 0) return 'Vence Hoje'
   if (diffDays === 1) return 'Vence Amanhã'
   return 'Ativo'
+}
+
+export const cleanPhone = (val: string) => (val ? val.replace(/\D/g, '') : '')
+
+export const maskPhone = (val: string) => {
+  if (!val) return ''
+  let v = val.replace(/\D/g, '')
+  if (v.length > 13) v = v.substring(0, 13)
+  if (v.length === 0) return ''
+
+  if (v.length <= 2) return `+${v}`
+  if (v.length <= 4) return `+${v.slice(0, 2)} (${v.slice(2)}`
+  if (v.length <= 8) return `+${v.slice(0, 2)} (${v.slice(2, 4)}) ${v.slice(4)}`
+  if (v.length <= 12) return `+${v.slice(0, 2)} (${v.slice(2, 4)}) ${v.slice(4, 8)}-${v.slice(8)}`
+  return `+${v.slice(0, 2)} (${v.slice(2, 4)}) ${v.slice(4, 9)}-${v.slice(9)}`
+}
+
+export const generateMessage = (template: string, client: Client) => {
+  return template
+    .replace(/{{nome}}/g, client.name || '')
+    .replace(/{{vencimento}}/g, formatDate(client.expiryDate))
+    .replace(/{{servico}}/g, client.service || '')
+    .replace(/{{usuario}}/g, client.user || 'N/A')
+    .replace(/{{senha}}/g, client.password || 'N/A')
 }

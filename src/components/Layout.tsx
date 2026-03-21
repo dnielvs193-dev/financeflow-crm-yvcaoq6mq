@@ -9,6 +9,7 @@ const routeTitles: Record<string, string> = {
   '/resellers': 'Módulo de Revendas',
   '/finance': 'Módulo Financeiro',
   '/banks': 'Bancos e Contas',
+  '/settings': 'Configurações de Mensagens',
   '/trash': 'Lixeira',
 }
 

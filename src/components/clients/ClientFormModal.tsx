@@ -20,6 +20,7 @@ import useMainStore from '@/stores/useMainStore'
 import { Client, ClientStatus } from '@/types'
 import { Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { maskPhone } from '@/lib/formatters'
 
 interface ClientFormModalProps {
   client?: Client
@@ -94,7 +95,7 @@ export function ClientFormModal({
       setFormData({
         ...defaultForm,
         name: client.name || '',
-        phone: client.phone || '',
+        phone: maskPhone(client.phone || ''),
         service: client.service || '',
         panel: client.panel || '',
         city: client.city || '',
@@ -195,8 +196,9 @@ export function ClientFormModal({
                 <Label>WhatsApp / Telefone *</Label>
                 <Input
                   required
+                  placeholder="+55 (11) 99999-9999"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
                 />
               </div>
               <div className="space-y-2">

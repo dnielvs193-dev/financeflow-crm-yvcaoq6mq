@@ -12,8 +12,15 @@ import { Card, CardContent } from '@/components/ui/card'
 import useMainStore from '@/stores/useMainStore'
 import { Client } from '@/types'
 import { ClientStatusBadge } from './ClientStatusBadge'
-import { formatDate, formatCurrency, getClientStatus } from '@/lib/formatters'
-import { MoreVertical, Phone, Trash, Edit } from 'lucide-react'
+import {
+  formatDate,
+  formatCurrency,
+  getClientStatus,
+  maskPhone,
+  cleanPhone,
+  generateMessage,
+} from '@/lib/formatters'
+import { MoreVertical, Phone, Trash, Edit, MessageCircle, Key } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
@@ -34,7 +41,7 @@ const getPreviewDate = (currentDate: string, days: number) => {
 }
 
 export function ClientList() {
-  const { clients, filteredClients, renewClient, deleteClient } = useMainStore()
+  const { clients, filteredClients, renewClient, deleteClient, templates } = useMainStore()
   const { toast } = useToast()
 
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -61,6 +68,28 @@ export function ClientList() {
         ? `Ajuste de ${days > 0 ? '+' : ''}${days}d aplicado.`
         : `Adicionado +${days} dias e lançamento gerado no Extrato financeiro.`,
     })
+  }
+
+  const handleWaClick = (client: Client, type: 'status' | 'credentials') => {
+    const phone = cleanPhone(client.phone)
+    if (!phone || phone.length < 10) {
+      toast({ title: 'Telefone inválido para envio.', variant: 'destructive' })
+      return
+    }
+    let template = templates.active
+    if (type === 'credentials') {
+      template = templates.credentials
+    } else {
+      const st = getClientStatus(client.expiryDate, client.status)
+      if (st === 'Vencido' || st === 'Vencido +30d' || st === 'Devedor')
+        template = templates.expired
+      else if (st === 'Excluído') template = templates.deleted
+      else template = templates.active
+    }
+
+    const msg = generateMessage(template, client)
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+    window.open(url, '_blank')
   }
 
   const handleSort = (col: 'name' | 'service' | 'expiryDate') => {
@@ -102,10 +131,10 @@ export function ClientList() {
               </TableHead>
               <TableHead>Serviço / Venda (Custo)</TableHead>
               <TableHead
-                className="cursor-pointer hover:bg-muted/50 w-[180px]"
+                className="cursor-pointer hover:bg-muted/50 w-[220px]"
                 onClick={() => handleSort('expiryDate')}
               >
-                Vencimento {sortCol === 'expiryDate' && (sortDesc ? '↓' : '↑')}
+                Vencimento / Status {sortCol === 'expiryDate' && (sortDesc ? '↓' : '↑')}
               </TableHead>
               <TableHead className="w-[300px]">Renovação Rápida</TableHead>
               <TableHead className="text-right">Ações</TableHead>
@@ -131,8 +160,8 @@ export function ClientList() {
                         </Badge>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Phone className="h-3 w-3" /> {client.phone}
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 font-medium">
+                      <Phone className="h-3 w-3" /> {maskPhone(client.phone)}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -143,9 +172,21 @@ export function ClientList() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium text-sm">{formatDate(client.expiryDate)}</div>
-                    <div className="mt-1">
-                      <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
+                    <div className="font-medium text-sm mb-1">{formatDate(client.expiryDate)}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ClientStatusBadge
+                        expiryDate={client.expiryDate}
+                        status={client.status}
+                        onClick={() => handleWaClick(client, 'status')}
+                        showIcon
+                      />
+                      <Badge
+                        variant="outline"
+                        className="cursor-pointer bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 gap-1 h-5 text-[10px] px-1.5"
+                        onClick={() => handleWaClick(client, 'credentials')}
+                      >
+                        <Key className="w-3 h-3" /> Credenciais
+                      </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -209,6 +250,9 @@ export function ClientList() {
                     <h3 className="font-bold text-base flex items-center gap-1">
                       {client.classification} {client.name}
                     </h3>
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
+                      <Phone className="h-3 w-3" /> {maskPhone(client.phone)}
+                    </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {client.service} • Venda: {formatCurrency(client.price)} | Custo:{' '}
                       {formatCurrency(client.cost)}
@@ -222,9 +266,23 @@ export function ClientList() {
                       </Badge>
                     )}
                   </div>
-                  <ClientStatusBadge expiryDate={client.expiryDate} status={client.status} />
                 </div>
-                <div className="flex flex-wrap gap-2 mb-3 mt-4">
+                <div className="flex items-center gap-2 mb-3 mt-2 flex-wrap">
+                  <ClientStatusBadge
+                    expiryDate={client.expiryDate}
+                    status={client.status}
+                    onClick={() => handleWaClick(client, 'status')}
+                    showIcon
+                  />
+                  <Badge
+                    variant="outline"
+                    className="cursor-pointer bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 gap-1 h-5 text-[10px] px-1.5"
+                    onClick={() => handleWaClick(client, 'credentials')}
+                  >
+                    <Key className="w-3 h-3" /> Credenciais
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-3">
                   {[15, 30, 31].map((d) => (
                     <Button
                       key={d}

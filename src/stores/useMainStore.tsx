@@ -1,5 +1,14 @@
 import { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react'
-import { Client, Transaction, Bank, InventoryItem, PriceTier, Reseller, Payable } from '@/types'
+import {
+  Client,
+  Transaction,
+  Bank,
+  InventoryItem,
+  PriceTier,
+  Reseller,
+  Payable,
+  MessageTemplates,
+} from '@/types'
 import { getClientStatus } from '@/lib/formatters'
 import {
   mockClients,
@@ -24,6 +33,7 @@ type MainStoreContextType = {
   tiers: PriceTier[]
   resellers: Reseller[]
   payables: Payable[]
+  templates: MessageTemplates
   searchQuery: string
   setSearchQuery: (q: string) => void
   statusFilter: string
@@ -79,9 +89,20 @@ type MainStoreContextType = {
   updatePayable: (id: string, u: Partial<Payable>) => void
   deletePayable: (id: string) => void
   payPayable: (id: string) => void
+  updateTemplates: (t: MessageTemplates) => void
 }
 
 const MainStoreContext = createContext<MainStoreContextType | undefined>(undefined)
+
+const defaultTemplates: MessageTemplates = {
+  active:
+    'Olá {{nome}}, tudo bem? Seu plano {{servico}} vence em {{vencimento}}. Para não ficar sem acesso, realize o pagamento.',
+  expired:
+    'Olá {{nome}}! Notamos que seu plano {{servico}} venceu em {{vencimento}}. Deseja renovar seu acesso?',
+  deleted: 'Olá {{nome}}, sua conta do serviço {{servico}} foi desativada.',
+  credentials:
+    'Olá {{nome}}!\n\nAqui estão seus dados de acesso para o {{servico}}:\n*Usuário:* {{usuario}}\n*Senha:* {{senha}}\n\nQualquer dúvida, estamos à disposição!',
+}
 
 export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [clients, setClients] = useState<Client[]>(() => {
@@ -154,6 +175,16 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     return mockPayables
   })
 
+  const [templates, setTemplates] = useState<MessageTemplates>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:templates')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse templates from local storage', e)
+    }
+    return defaultTemplates
+  })
+
   useEffect(() => {
     localStorage.setItem('@financeflow:clients', JSON.stringify(clients))
   }, [clients])
@@ -175,6 +206,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem('@financeflow:payables', JSON.stringify(payables))
   }, [payables])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:templates', JSON.stringify(templates))
+  }, [templates])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -502,6 +536,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     updatePayable(id, { status: 'Pago', paymentDate: new Date().toISOString() })
   }
 
+  const updateTemplates = (newTemplates: MessageTemplates) => setTemplates(newTemplates)
+
   const filteredClients = useMemo(
     () =>
       clients.filter((c) => {
@@ -574,6 +610,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         tiers,
         resellers,
         payables,
+        templates,
         searchQuery,
         setSearchQuery,
         statusFilter,
@@ -622,6 +659,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         updatePayable,
         deletePayable,
         payPayable,
+        updateTemplates,
       }}
     >
       {children}
