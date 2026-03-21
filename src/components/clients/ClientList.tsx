@@ -20,7 +20,7 @@ import {
   cleanPhone,
   generateMessage,
 } from '@/lib/formatters'
-import { MoreVertical, Phone, Trash, Edit, MessageCircle, Key } from 'lucide-react'
+import { MoreVertical, Phone, Trash, Edit, Key } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
@@ -76,7 +76,7 @@ export function ClientList() {
     if (!phone || phone.length < 10 || phone.length > 13) {
       toast({
         title: 'Telefone inválido para envio.',
-        description: 'O número deve conter entre 10 e 13 dígitos.',
+        description: 'O numero de telefone deve conter entre 10 e 13 digitos',
         variant: 'destructive',
       })
       return

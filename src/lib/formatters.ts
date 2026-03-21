@@ -35,19 +35,25 @@ export const getClientStatus = (expiryDate: string, manualStatus?: string | null
   return 'Ativo'
 }
 
-export const cleanPhone = (val: string) => (val ? val.replace(/\D/g, '') : '')
-
-export const maskPhone = (val: string) => {
+export const cleanPhone = (val: string | number | null | undefined) => {
   if (!val) return ''
-  let v = val.replace(/\D/g, '')
+  return String(val).replace(/\D/g, '')
+}
+
+export const maskPhone = (val: string | number | null | undefined) => {
+  if (!val) return ''
+  let v = String(val).replace(/\D/g, '')
   if (v.length > 13) v = v.substring(0, 13)
   if (v.length === 0) return ''
 
-  if (v.length <= 2) return `+${v}`
-  if (v.length <= 4) return `+${v.slice(0, 2)} (${v.slice(2)}`
-  if (v.length <= 8) return `+${v.slice(0, 2)} (${v.slice(2, 4)}) ${v.slice(4)}`
-  if (v.length <= 12) return `+${v.slice(0, 2)} (${v.slice(2, 4)}) ${v.slice(4, 8)}-${v.slice(8)}`
-  return `+${v.slice(0, 2)} (${v.slice(2, 4)}) ${v.slice(4, 9)}-${v.slice(9)}`
+  if (v.length <= 2) return v
+  if (v.length <= 6) return `(${v.slice(0, 2)}) ${v.slice(2)}`
+  if (v.length <= 10) return `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`
+  if (v.length === 11) return `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`
+  if (v.length === 12) return `+${v.slice(0, 2)} (${v.slice(2, 4)}) ${v.slice(4, 8)}-${v.slice(8)}`
+  if (v.length >= 13) return `+${v.slice(0, 2)} (${v.slice(2, 4)}) ${v.slice(4, 9)}-${v.slice(9)}`
+
+  return v
 }
 
 export const generateMessage = (template: string, client: Client) => {
