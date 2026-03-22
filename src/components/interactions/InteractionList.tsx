@@ -16,10 +16,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import useMainStore from '@/stores/useMainStore'
 import { maskPhone } from '@/lib/formatters'
-import { Check, UserCircle, Bot, Search, AlertTriangle } from 'lucide-react'
+import { Check, UserCircle, Search, AlertTriangle, Paperclip, ShieldAlert } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 export function InteractionList() {
   const {
@@ -87,7 +95,7 @@ export function InteractionList() {
       case 'renovacao_executada':
         return (
           <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border-0">
-            Renovação Auto Executada
+            Renovação Executada
           </Badge>
         )
       case 'aguardando_atendimento_humano':
@@ -144,7 +152,7 @@ export function InteractionList() {
               <TableHead>Mensagem (Webhook)</TableHead>
               <TableHead>Intenção (IA)</TableHead>
               <TableHead>Workflow / Status</TableHead>
-              <TableHead className="text-right">Ação</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -177,6 +185,11 @@ export function InteractionList() {
                 <TableCell>
                   <div className="flex flex-col gap-1 items-start">
                     {getStatusBadge(int.status)}
+                    {int.receiptId && (
+                      <span className="flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                        <Paperclip className="h-3 w-3" /> Anexo (Mídia)
+                      </span>
+                    )}
                     {int.errorLog && (
                       <Tooltip>
                         <TooltipTrigger className="cursor-help flex items-center gap-1 text-[10px] text-red-500 font-medium bg-red-50 px-1.5 py-0.5 rounded">
@@ -190,7 +203,79 @@ export function InteractionList() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                  {int.status === 'aguardando_atendimento_humano' ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 gap-1">
+                        <ShieldAlert className="h-4 w-4" /> Logs
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Audit Logs: Interação</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="text-sm border rounded-md overflow-hidden">
+                          <table className="w-full text-left">
+                            <thead className="bg-muted">
+                              <tr>
+                                <th className="px-3 py-2 text-xs font-medium">Data/Hora</th>
+                                <th className="px-3 py-2 text-xs font-medium">Ator</th>
+                                <th className="px-3 py-2 text-xs font-medium">Ação / Detalhes</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {int.auditLogs?.map((log) => (
+                                <tr key={log.id}>
+                                  <td className="px-3 py-2 text-xs whitespace-nowrap text-muted-foreground">
+                                    {new Intl.DateTimeFormat('pt-BR', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      second: '2-digit',
+                                    }).format(new Date(log.timestamp))}
+                                  </td>
+                                  <td className="px-3 py-2 text-xs font-medium">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        'text-[10px] px-1 py-0 h-4',
+                                        log.actor === 'AI'
+                                          ? 'text-purple-600 border-purple-200 bg-purple-50'
+                                          : log.actor === 'User'
+                                            ? 'text-blue-600 border-blue-200 bg-blue-50'
+                                            : 'text-gray-600 border-gray-200 bg-gray-50',
+                                      )}
+                                    >
+                                      {log.actor}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <div className="text-xs font-medium">{log.action}</div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                                      {log.details}
+                                    </div>
+                                    <div className="text-[9px] text-muted-foreground/50 mt-1 font-mono">
+                                      ID: {log.correlationId}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                              {!int.auditLogs?.length && (
+                                <tr>
+                                  <td
+                                    colSpan={3}
+                                    className="px-3 py-4 text-center text-xs text-muted-foreground"
+                                  >
+                                    Nenhum log registrado.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  {int.status === 'aguardando_atendimento_humano' && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -198,15 +283,6 @@ export function InteractionList() {
                       className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
                     >
                       <Check className="h-4 w-4" /> Assumir / Encerrar
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled
-                      className="gap-1 opacity-50 cursor-not-allowed"
-                    >
-                      <Bot className="h-4 w-4" /> OK
                     </Button>
                   )}
                 </TableCell>

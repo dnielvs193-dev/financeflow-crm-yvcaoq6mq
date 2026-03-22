@@ -56,6 +56,13 @@ export const maskPhone = (val: string | number | null | undefined) => {
   return v
 }
 
+export const isContactedThisMonth = (date?: string) => {
+  if (!date) return false
+  const d = new Date(date)
+  const now = new Date()
+  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+}
+
 export const generateMessage = (template: string, client: Client) => {
   return template
     .replace(/{{nome}}/g, client.name || '')

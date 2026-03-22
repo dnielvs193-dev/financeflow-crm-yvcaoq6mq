@@ -15,7 +15,7 @@ export default function Interactions() {
     (i) => i.status === 'aguardando_atendimento_humano',
   ).length
   const pendingReceiptsCount = receipts.filter(
-    (r) => r.status === 'recebido' || r.status === 'em_analise',
+    (r) => r.status === 'comprovante_recebido' || r.status === 'comprovante_em_analise',
   ).length
   const autoRenewalsCount = interactions.filter((i) => i.status === 'renovacao_executada').length
 
@@ -71,7 +71,7 @@ export default function Interactions() {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Renovações IA (Sucesso)</p>
+              <p className="text-sm font-medium text-muted-foreground">Renovações (Sucesso)</p>
               <p className="text-2xl font-bold text-green-600">{autoRenewalsCount}</p>
             </div>
           </CardContent>

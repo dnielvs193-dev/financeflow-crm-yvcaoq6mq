@@ -12,6 +12,8 @@ import {
   Receipt,
   InteractionIntent,
   InteractionStatus,
+  ReceiptStatus,
+  AuditLog,
 } from '@/types'
 import { getClientStatus, cleanPhone } from '@/lib/formatters'
 import {
@@ -104,7 +106,7 @@ type MainStoreContextType = {
   payPayable: (id: string) => void
   updateTemplates: (t: MessageTemplates) => void
   simulateWebhookMessage: (phone: string, text: string, hasMedia: boolean) => void
-  validateReceipt: (id: string, isValid: boolean) => void
+  updateReceiptStatus: (id: string, status: ReceiptStatus, actor?: 'User' | 'System') => void
   updateInteractionStatus: (id: string, status: InteractionStatus) => void
 }
 
@@ -583,12 +585,26 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
   const updateTemplates = (newTemplates: MessageTemplates) => setTemplates(newTemplates)
 
+  const addAuditLogToInteraction = (interactionId: string | undefined, log: AuditLog) => {
+    if (!interactionId) return
+    setInteractions((prev) =>
+      prev.map((i) =>
+        i.id === interactionId ? { ...i, auditLogs: [...(i.auditLogs || []), log] } : i,
+      ),
+    )
+  }
+
   const simulateWebhookMessage = (phone: string, text: string, hasMedia: boolean) => {
-    const cleanedPhone = cleanPhone(phone)
+    let cleanedPhone = cleanPhone(phone)
+    if (cleanedPhone.startsWith('0')) cleanedPhone = cleanedPhone.substring(1)
+    if (!cleanedPhone.startsWith('55')) cleanedPhone = `55${cleanedPhone}`
+
     const clientMatch = clients.find((c) => {
       const cPhone = cleanPhone(c.phone)
       return (
-        cPhone === cleanedPhone || cPhone === '55' + cleanedPhone || '55' + cPhone === cleanedPhone
+        cPhone === cleanedPhone ||
+        '55' + cPhone === cleanedPhone ||
+        cPhone === cleanedPhone.substring(2)
       )
     })
 
@@ -597,16 +613,29 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     let status: InteractionStatus = clientMatch ? 'cliente_identificado' : 'novo_contato'
     const textLower = text.toLowerCase()
 
-    if (textLower.includes('humano') || textLower.includes('atendente')) {
+    if (
+      textLower.includes('humano') ||
+      textLower.includes('atendente') ||
+      textLower.includes('falar com alguem')
+    ) {
       intent = 'solicitar suporte humano'
       status = 'aguardando_atendimento_humano'
       confidence = 0.95
-    } else if (hasMedia || textLower.includes('comprovante') || textLower.includes('pix')) {
+    } else if (
+      hasMedia ||
+      textLower.includes('comprovante') ||
+      textLower.includes('pix') ||
+      textLower.includes('recibo')
+    ) {
       intent = 'enviar comprovante'
       status = 'comprovante_recebido'
-    } else if (textLower.includes('vencimento') || textLower.includes('vence')) {
+    } else if (
+      textLower.includes('vencimento') ||
+      textLower.includes('vence') ||
+      textLower.includes('dias faltam')
+    ) {
       intent = 'solicitar informações sobre vencimento'
-    } else if (textLower.includes('renovar')) {
+    } else if (textLower.includes('renovar') || textLower.includes('renovacao')) {
       intent = 'pedir confirmação de renovação'
     } else if (textLower.includes('status') || textLower.includes('pago')) {
       intent = 'consultar status do pagamento'
@@ -617,8 +646,28 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       status = 'aguardando_atendimento_humano'
     }
 
+    const correlationId = 'sim_' + Date.now()
     const interactionId = Math.random().toString(36).substr(2, 9)
     let receiptId = undefined
+
+    const auditLogs: AuditLog[] = [
+      {
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+        action: 'Webhook Recebido',
+        actor: 'System',
+        correlationId,
+        details: `Payload recebido de ${cleanedPhone} via WhatsApp. (Tokens e chaves mascaradas)`,
+      },
+      {
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+        action: 'Classificação de Intenção (IA)',
+        actor: 'AI',
+        correlationId,
+        details: `Intenção classificada como '${intent}' (Confiança: ${(confidence * 100).toFixed(0)}%).`,
+      },
+    ]
 
     if (intent === 'enviar comprovante' && hasMedia) {
       receiptId = Math.random().toString(36).substr(2, 9)
@@ -628,9 +677,28 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         phone: cleanedPhone,
         timestamp: new Date().toISOString(),
         fileAttachment: 'https://img.usecurling.com/p/400/600?q=receipt&color=gray',
-        status: 'recebido',
+        status: 'comprovante_recebido',
       }
       setReceipts((prev) => [newReceipt, ...prev])
+      auditLogs.push({
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+        action: 'Comprovante Identificado',
+        actor: 'System',
+        correlationId,
+        details: `Mídia recebida e extraída para painel de validação.`,
+      })
+    }
+
+    if (!clientMatch) {
+      auditLogs.push({
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+        action: 'Cliente Não Identificado',
+        actor: 'System',
+        correlationId,
+        details: `Número não encontrado na base. Solicitado dados adicionais (Nome/CPF).`,
+      })
     }
 
     const newInteraction: Interaction = {
@@ -645,8 +713,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       receiptId,
       status,
       timestamp: new Date().toISOString(),
-      correlationId: 'sim_' + Date.now(),
+      correlationId,
       isOutbound: false,
+      auditLogs,
     }
 
     setInteractions((prev) => [newInteraction, ...prev])
@@ -656,56 +725,53 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const validateReceipt = (id: string, isValid: boolean) => {
+  const updateReceiptStatus = (
+    id: string,
+    status: ReceiptStatus,
+    actor: 'User' | 'System' = 'User',
+  ) => {
     const receipt = receipts.find((r) => r.id === id)
     if (!receipt) return
 
-    if (isValid) {
+    const interaction = interactions.find((i) => i.receiptId === id)
+    const correlationId = interaction ? interaction.correlationId : `sys_${Date.now()}`
+
+    if (status === 'pagamento_validado') {
+      let rulesMet = false
+      let clientMatch = null
+      let invItemMatch = null
+
       if (receipt.clientId) {
-        const client = clients.find((c) => c.id === receipt.clientId)
-        if (client) {
-          const invItem = inventory.find(
-            (i) => i.name.toLowerCase() === client.service.toLowerCase(),
+        clientMatch = clients.find((c) => c.id === receipt.clientId)
+        if (clientMatch) {
+          invItemMatch = inventory.find(
+            (i) => i.name.toLowerCase() === clientMatch!.service.toLowerCase(),
           )
-
-          // Intelligent Rules engine: Block renewal if stock is 0 and requires control
-          if (invItem && invItem.stockControl && invItem.currentStock <= 0) {
-            setReceipts((prev) =>
-              prev.map((r) =>
-                r.id === id
-                  ? { ...r, status: 'em_analise', notes: 'Estoque insuficiente no CRM.' }
-                  : r,
-              ),
-            )
-            setInteractions((prev) =>
-              prev.map((i) =>
-                i.receiptId === id
-                  ? {
-                      ...i,
-                      status: 'aguardando_atendimento_humano',
-                      errorLog: 'Falha Auto-Renovação: Estoque insuficiente do item associado.',
-                    }
-                  : i,
-              ),
-            )
-            return // Route to human handler
+          if (invItemMatch) {
+            rulesMet = !invItemMatch.stockControl || invItemMatch.currentStock > 0
+          } else {
+            rulesMet = true
           }
+        }
+      }
 
-          renewClient(client.id, 30) // Assuming standard 30d renewal
-          setReceipts((prev) =>
-            prev.map((r) =>
-              r.id === id
-                ? {
-                    ...r,
-                    status: 'validado',
-                    notes: 'Auto-renovado +30d e lançamento gerado no financeiro.',
-                  }
-                : r,
-            ),
-          )
+      if (rulesMet && clientMatch) {
+        renewClient(clientMatch.id, 30)
+        setReceipts((prev) =>
+          prev.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  status: 'pagamento_validado',
+                  notes: 'Auto-renovado +30d e lançamento gerado no financeiro.',
+                }
+              : r,
+          ),
+        )
+        if (interaction) {
           setInteractions((prev) =>
             prev.map((i) =>
-              i.receiptId === id
+              i.id === interaction.id
                 ? {
                     ...i,
                     status: 'renovacao_executada',
@@ -714,25 +780,70 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
                 : i,
             ),
           )
-        } else {
-          // No client ID mapped
-          setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'em_analise' } : r)))
+        }
+        addAuditLogToInteraction(interaction?.id, {
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: new Date().toISOString(),
+          action: 'Renovação Executada',
+          actor,
+          correlationId,
+          details: `Cliente ${clientMatch.name} renovado por 30 dias. Saldo/Estoque atualizado.`,
+        })
+      } else {
+        setReceipts((prev) =>
+          prev.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  status: 'comprovante_em_analise',
+                  notes: 'Estoque insuficiente ou cliente não mapeado.',
+                }
+              : r,
+          ),
+        )
+        if (interaction) {
           setInteractions((prev) =>
             prev.map((i) =>
-              i.receiptId === id ? { ...i, status: 'aguardando_atendimento_humano' } : i,
+              i.id === interaction.id
+                ? {
+                    ...i,
+                    status: 'aguardando_atendimento_humano',
+                    errorLog: 'Falha Auto-Renovação: Regras não atendidas.',
+                  }
+                : i,
             ),
           )
         }
+        addAuditLogToInteraction(interaction?.id, {
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: new Date().toISOString(),
+          action: 'Falha na Regra de Renovação',
+          actor: 'System',
+          correlationId,
+          details: `Bloqueado por regras de negócio. Encaminhado para humano.`,
+        })
       }
     } else {
-      setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'rejeitado' } : r)))
-      setInteractions((prev) =>
-        prev.map((i) =>
-          i.receiptId === id
-            ? { ...i, status: 'pagamento_nao_validado', errorLog: 'Operador rejeitou comprovante.' }
-            : i,
-        ),
-      )
+      setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+
+      let interactionStatus: InteractionStatus = interaction?.status || 'encerrado'
+      if (status === 'pagamento_nao_validado') interactionStatus = 'pagamento_nao_validado'
+      if (status === 'comprovante_em_analise') interactionStatus = 'comprovante_em_analise'
+
+      if (interaction) {
+        setInteractions((prev) =>
+          prev.map((i) => (i.id === interaction.id ? { ...i, status: interactionStatus } : i)),
+        )
+      }
+
+      addAuditLogToInteraction(interaction?.id, {
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+        action: `Status alterado para ${status}`,
+        actor,
+        correlationId,
+        details: `O status do comprovante foi atualizado manualmente ou pelo sistema.`,
+      })
     }
   }
 
@@ -890,7 +1001,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         payPayable,
         updateTemplates,
         simulateWebhookMessage,
-        validateReceipt,
+        updateReceiptStatus,
         updateInteractionStatus,
       }}
     >

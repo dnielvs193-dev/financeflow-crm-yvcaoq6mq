@@ -40,7 +40,7 @@ export function SimulatorModal() {
       setHasMedia(true)
     } else if (scenario === 'duvida') {
       setPhone('5551999999992') // Known client
-      setMessage('Quando vence minha conta?')
+      setMessage('Quantos dias faltam para o meu vencimento?')
       setHasMedia(false)
     } else if (scenario === 'humano') {
       setPhone('5511988887777') // Unknown client
@@ -111,7 +111,8 @@ export function SimulatorModal() {
             <strong>Como funciona:</strong> A IA tentará identificar o cliente pelo número. Se a
             intenção for envio de comprovante e for um cliente conhecido, gerará um <em>Receipt</em>{' '}
             para validação (se o comprovante for válido e houver estoque). Se não encontrar o
-            cliente ou for uma dúvida complexa, a intenção será encaminhada para humano.
+            cliente ou for uma dúvida complexa, a intenção será encaminhada para humano. Logs de
+            auditoria serão gerados.
           </div>
           <div className="flex justify-end pt-4">
             <Button type="submit" className="gap-2">

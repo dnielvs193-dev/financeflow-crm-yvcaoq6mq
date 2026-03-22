@@ -104,7 +104,6 @@ export const mockInventory: InventoryItem[] = [
 ]
 
 export const mockTiers: PriceTier[] = [
-  // Goat
   { id: 't_goat_1', itemId: 'inv_goat', startQty: 5, endQty: 9, unitPrice: 9.0 },
   { id: 't_goat_2', itemId: 'inv_goat', startQty: 10, endQty: 29, unitPrice: 7.0 },
   { id: 't_goat_3', itemId: 'inv_goat', startQty: 30, endQty: 49, unitPrice: 6.5 },
@@ -113,39 +112,29 @@ export const mockTiers: PriceTier[] = [
   { id: 't_goat_6', itemId: 'inv_goat', startQty: 500, endQty: 999, unitPrice: 4.5 },
   { id: 't_goat_7', itemId: 'inv_goat', startQty: 1000, endQty: 4999, unitPrice: 4.25 },
   { id: 't_goat_8', itemId: 'inv_goat', startQty: 5000, endQty: 100000, unitPrice: 4.0 },
-
-  // Five
   { id: 't_five_1', itemId: 'inv_five', startQty: 10, endQty: 49, unitPrice: 12.0 },
   { id: 't_five_2', itemId: 'inv_five', startQty: 50, endQty: 99, unitPrice: 10.0 },
   { id: 't_five_3', itemId: 'inv_five', startQty: 100, endQty: 299, unitPrice: 8.0 },
   { id: 't_five_4', itemId: 'inv_five', startQty: 300, endQty: 999, unitPrice: 7.0 },
   { id: 't_five_5', itemId: 'inv_five', startQty: 1000, endQty: 4999, unitPrice: 6.0 },
   { id: 't_five_6', itemId: 'inv_five', startQty: 5000, endQty: 100000, unitPrice: 5.0 },
-
-  // Live
   { id: 't_live_1', itemId: 'inv_live', startQty: 10, endQty: 50, unitPrice: 10.0 },
   { id: 't_live_2', itemId: 'inv_live', startQty: 51, endQty: 150, unitPrice: 9.0 },
   { id: 't_live_3', itemId: 'inv_live', startQty: 151, endQty: 300, unitPrice: 8.0 },
   { id: 't_live_4', itemId: 'inv_live', startQty: 301, endQty: 700, unitPrice: 7.0 },
   { id: 't_live_5', itemId: 'inv_live', startQty: 701, endQty: 1000, unitPrice: 6.0 },
   { id: 't_live_6', itemId: 'inv_live', startQty: 1001, endQty: 100000, unitPrice: 5.0 },
-
-  // UniPlay
   { id: 't_uniplay_1', itemId: 'inv_uniplay', startQty: 10, endQty: 49, unitPrice: 12.0 },
   { id: 't_uniplay_2', itemId: 'inv_uniplay', startQty: 50, endQty: 99, unitPrice: 10.0 },
   { id: 't_uniplay_3', itemId: 'inv_uniplay', startQty: 100, endQty: 299, unitPrice: 8.0 },
   { id: 't_uniplay_4', itemId: 'inv_uniplay', startQty: 300, endQty: 999, unitPrice: 7.0 },
   { id: 't_uniplay_5', itemId: 'inv_uniplay', startQty: 1000, endQty: 2999, unitPrice: 6.0 },
   { id: 't_uniplay_6', itemId: 'inv_uniplay', startQty: 3000, endQty: 5999, unitPrice: 5.0 },
-
-  // UniTV
   { id: 't_unitv_1', itemId: 'inv_unitv', startQty: 5, endQty: 5, unitPrice: 12.0 },
   { id: 't_unitv_2', itemId: 'inv_unitv', startQty: 10, endQty: 49, unitPrice: 10.0 },
   { id: 't_unitv_3', itemId: 'inv_unitv', startQty: 50, endQty: 99, unitPrice: 9.5 },
   { id: 't_unitv_4', itemId: 'inv_unitv', startQty: 100, endQty: 499, unitPrice: 8.75 },
   { id: 't_unitv_5', itemId: 'inv_unitv', startQty: 500, endQty: 100000, unitPrice: 8.5 },
-
-  // Others
   { id: 't_gsat1', itemId: 'inv_gsat', startQty: 1, endQty: null, unitPrice: 30.0 },
   { id: 't_tvexpress1', itemId: 'inv_tvexpress', startQty: 1, endQty: null, unitPrice: 40.0 },
   { id: 't_redplay1', itemId: 'inv_redplay', startQty: 1, endQty: null, unitPrice: 38.0 },
@@ -297,6 +286,24 @@ export const mockInteractions: Interaction[] = [
     timestamp: new Date().toISOString(),
     correlationId: 'req_123',
     isOutbound: false,
+    auditLogs: [
+      {
+        id: 'aud_1',
+        timestamp: new Date().toISOString(),
+        action: 'Webhook Recebido',
+        actor: 'System',
+        correlationId: 'req_123',
+        details: 'Mensagem recebida e processada via API /api/conversas/',
+      },
+      {
+        id: 'aud_2',
+        timestamp: new Date().toISOString(),
+        action: 'Classificação de Intenção',
+        actor: 'AI',
+        correlationId: 'req_123',
+        details: 'Intenção classificada como solicitar informações sobre vencimento',
+      },
+    ],
   },
 ]
 
@@ -307,6 +314,6 @@ export const mockReceipts: Receipt[] = [
     phone: '5551999999992',
     timestamp: new Date().toISOString(),
     fileAttachment: 'https://img.usecurling.com/p/300/500?q=receipt&color=blue',
-    status: 'recebido',
+    status: 'comprovante_recebido',
   },
 ]

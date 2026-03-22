@@ -159,6 +159,15 @@ export type InteractionStatus =
   | 'aguardando_atendimento_humano'
   | 'encerrado'
 
+export type AuditLog = {
+  id: string
+  timestamp: string
+  action: string
+  actor: 'System' | 'AI' | 'User'
+  correlationId: string
+  details?: string
+}
+
 export type Interaction = {
   id: string
   conversationId: string
@@ -175,9 +184,14 @@ export type Interaction = {
   correlationId: string
   isOutbound: boolean
   errorLog?: string
+  auditLogs?: AuditLog[]
 }
 
-export type ReceiptStatus = 'recebido' | 'em_analise' | 'validado' | 'rejeitado'
+export type ReceiptStatus =
+  | 'comprovante_recebido'
+  | 'comprovante_em_analise'
+  | 'pagamento_validado'
+  | 'pagamento_nao_validado'
 
 export type Receipt = {
   id: string

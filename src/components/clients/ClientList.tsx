@@ -19,6 +19,7 @@ import {
   maskPhone,
   cleanPhone,
   generateMessage,
+  isContactedThisMonth,
 } from '@/lib/formatters'
 import { MoreVertical, Phone, Trash, Edit, Key, MessageCircleHeart } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
@@ -162,6 +163,7 @@ export function ClientList() {
             {sortedClients.map((client) => {
               const count = nameCounts[client.name.trim().toLowerCase()] || 0
               const isRecent = isRecentContact(client.lastContactedDate)
+              const contactedThisMonth = isContactedThisMonth(client.lastContactedDate)
               return (
                 <TableRow key={client.id}>
                   <TableCell>
@@ -176,6 +178,14 @@ export function ClientList() {
                             className="h-4 w-4 text-green-500"
                             title="Contatado recentemente via IA/Bot"
                           />
+                        )}
+                        {contactedThisMonth && (
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] h-5 px-1.5 font-semibold"
+                          >
+                            Cobrado Mês
+                          </Badge>
                         )}
                       </div>
                       {count > 1 && (
@@ -270,6 +280,7 @@ export function ClientList() {
         {sortedClients.map((client) => {
           const count = nameCounts[client.name.trim().toLowerCase()] || 0
           const isRecent = isRecentContact(client.lastContactedDate)
+          const contactedThisMonth = isContactedThisMonth(client.lastContactedDate)
           return (
             <Card key={client.id} className="border-none shadow-sm">
               <CardContent className="p-4">
@@ -278,6 +289,14 @@ export function ClientList() {
                     <h3 className="font-bold text-base flex items-center gap-1">
                       {client.classification} {client.name}
                       {isRecent && <MessageCircleHeart className="h-4 w-4 text-green-500 ml-1" />}
+                      {contactedThisMonth && (
+                        <Badge
+                          variant="outline"
+                          className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] h-4 px-1 font-semibold ml-1"
+                        >
+                          Cobrado
+                        </Badge>
+                      )}
                     </h3>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
                       <Phone className="h-3 w-3" /> {maskPhone(client.phone)}

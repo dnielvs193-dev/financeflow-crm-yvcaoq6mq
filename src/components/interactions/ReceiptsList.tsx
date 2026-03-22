@@ -10,11 +10,17 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import useMainStore from '@/stores/useMainStore'
 import { maskPhone } from '@/lib/formatters'
-import { Check, X, Eye, FileText } from 'lucide-react'
+import { Check, X, Eye, FileText, MoreVertical } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export function ReceiptsList() {
-  const { receipts, clients, validateReceipt } = useMainStore()
+  const { receipts, clients, updateReceiptStatus } = useMainStore()
 
   const getClientName = (id?: string) => {
     if (id) {
@@ -26,25 +32,25 @@ export function ReceiptsList() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'recebido':
+      case 'comprovante_recebido':
         return (
           <Badge className="bg-orange-500/15 text-orange-600 hover:bg-orange-500/25 border-0">
-            Aguardando Análise
+            Aguardando Validação
           </Badge>
         )
-      case 'em_analise':
+      case 'comprovante_em_analise':
         return (
           <Badge className="bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/25 border-0">
-            Requer Atenção (Estoque/Dados)
+            Requer Análise (Estoque/Dados)
           </Badge>
         )
-      case 'validado':
+      case 'pagamento_validado':
         return (
           <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/25 border-0">
             Validado (Renovado)
           </Badge>
         )
-      case 'rejeitado':
+      case 'pagamento_nao_validado':
         return (
           <Badge className="bg-red-500/15 text-red-600 hover:bg-red-500/25 border-0">
             Rejeitado
@@ -108,26 +114,39 @@ export function ReceiptsList() {
                 </div>
               </TableCell>
               <TableCell className="text-right space-x-2">
-                {rec.status === 'recebido' || rec.status === 'em_analise' ? (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => validateReceipt(rec.id, true)}
-                      className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                      title="Aprova pagamento e executa renovação automática de 30 dias (se houver estoque)."
-                    >
-                      <Check className="h-4 w-4" /> Aprovar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => validateReceipt(rec.id, false)}
-                      className="gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                    >
-                      <X className="h-4 w-4" /> Rejeitar
-                    </Button>
-                  </>
+                {rec.status === 'comprovante_recebido' ||
+                rec.status === 'comprovante_em_analise' ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => updateReceiptStatus(rec.id, 'pagamento_validado', 'User')}
+                        className="text-green-600"
+                      >
+                        <Check className="mr-2 h-4 w-4" /> Aprovar e Renovar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          updateReceiptStatus(rec.id, 'comprovante_em_analise', 'User')
+                        }
+                        className="text-yellow-600"
+                      >
+                        <FileText className="mr-2 h-4 w-4" /> Colocar em Análise
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          updateReceiptStatus(rec.id, 'pagamento_nao_validado', 'User')
+                        }
+                        className="text-red-600"
+                      >
+                        <X className="mr-2 h-4 w-4" /> Rejeitar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : (
                   <span className="text-xs text-muted-foreground mr-4">Processado</span>
                 )}
