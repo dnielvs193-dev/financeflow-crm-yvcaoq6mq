@@ -137,6 +137,13 @@ export type MessageTemplates = {
   credentials: string
 }
 
+export type MetaApiConfig = {
+  accessToken: string
+  phoneNumberId: string
+  wabaId: string
+  verifyToken: string
+}
+
 export type InteractionIntent =
   | 'solicitar informações sobre vencimento'
   | 'consultar status do pagamento'

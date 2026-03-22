@@ -8,6 +8,7 @@ import {
   Reseller,
   Payable,
   MessageTemplates,
+  MetaApiConfig,
   Interaction,
   Receipt,
   InteractionIntent,
@@ -42,6 +43,7 @@ type MainStoreContextType = {
   resellers: Reseller[]
   payables: Payable[]
   templates: MessageTemplates
+  metaConfig: MetaApiConfig
   interactions: Interaction[]
   receipts: Receipt[]
   searchQuery: string
@@ -105,6 +107,7 @@ type MainStoreContextType = {
   deletePayable: (id: string) => void
   payPayable: (id: string) => void
   updateTemplates: (t: MessageTemplates) => void
+  updateMetaConfig: (c: MetaApiConfig) => void
   simulateWebhookMessage: (phone: string, text: string, hasMedia: boolean) => void
   updateReceiptStatus: (id: string, status: ReceiptStatus, actor?: 'User' | 'System') => void
   updateInteractionStatus: (id: string, status: InteractionStatus) => void
@@ -203,6 +206,16 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     return defaultTemplates
   })
 
+  const [metaConfig, setMetaConfig] = useState<MetaApiConfig>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:metaConfig')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse metaConfig from local storage', e)
+    }
+    return { accessToken: '', phoneNumberId: '', wabaId: '', verifyToken: '' }
+  })
+
   const [interactions, setInteractions] = useState<Interaction[]>(() => {
     try {
       const saved = localStorage.getItem('@financeflow:interactions')
@@ -247,6 +260,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem('@financeflow:templates', JSON.stringify(templates))
   }, [templates])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:metaConfig', JSON.stringify(metaConfig))
+  }, [metaConfig])
   useEffect(() => {
     localStorage.setItem('@financeflow:interactions', JSON.stringify(interactions))
   }, [interactions])
@@ -584,6 +600,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const updateTemplates = (newTemplates: MessageTemplates) => setTemplates(newTemplates)
+  const updateMetaConfig = (config: MetaApiConfig) => setMetaConfig(config)
 
   const addAuditLogToInteraction = (interactionId: string | undefined, log: AuditLog) => {
     if (!interactionId) return
@@ -657,7 +674,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         action: 'Webhook Recebido',
         actor: 'System',
         correlationId,
-        details: `Payload recebido de ${cleanedPhone} via WhatsApp. (Tokens e chaves mascaradas)`,
+        details: `Payload Meta Cloud API processado via /api/webhook. (Destino: 5551996111046)`,
       },
       {
         id: Math.random().toString(36).substr(2, 9),
@@ -683,10 +700,10 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       auditLogs.push({
         id: Math.random().toString(36).substr(2, 9),
         timestamp: new Date().toISOString(),
-        action: 'Comprovante Identificado',
+        action: 'Comprovante Identificado e Extraído',
         actor: 'System',
         correlationId,
-        details: `Mídia recebida e extraída para painel de validação.`,
+        details: `Mídia recebida (OCR simulado). Extração de dados vinculada ao financeiro do CRM.`,
       })
     }
 
@@ -787,7 +804,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
           action: 'Renovação Executada',
           actor,
           correlationId,
-          details: `Cliente ${clientMatch.name} renovado por 30 dias. Saldo/Estoque atualizado.`,
+          details: `Cliente ${clientMatch.name} renovado por 30 dias. Saldo/Estoque atualizado e transação gerada.`,
         })
       } else {
         setReceipts((prev) =>
@@ -944,6 +961,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         resellers,
         payables,
         templates,
+        metaConfig,
         interactions,
         receipts,
         searchQuery,
@@ -1000,6 +1018,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         deletePayable,
         payPayable,
         updateTemplates,
+        updateMetaConfig,
         simulateWebhookMessage,
         updateReceiptStatus,
         updateInteractionStatus,

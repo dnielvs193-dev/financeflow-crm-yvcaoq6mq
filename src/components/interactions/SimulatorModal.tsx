@@ -28,7 +28,7 @@ export function SimulatorModal() {
     simulateWebhookMessage(phone, message, hasMedia)
     toast({
       title: 'Webhook Simulado',
-      description: 'Mensagem recebida e processada pelo Agente de IA.',
+      description: 'Mensagem recebida e processada pelo Agente de IA e Pipeline Financeiro.',
     })
     setOpen(false)
   }
@@ -52,16 +52,16 @@ export function SimulatorModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Play className="h-4 w-4" /> Testar Webhook IA
+        <Button variant="outline" className="gap-2 border-primary/50 hover:bg-primary/10">
+          <Play className="h-4 w-4 text-primary" /> Testar Webhook IA
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Simulador de Payload WhatsApp</DialogTitle>
           <DialogDescription>
-            Simule o recebimento de uma mensagem para ver como a IA classifica a intenção e executa
-            regras de negócio.
+            Simule o recebimento de um evento da Meta API (POST) para testar a IA e a automação do
+            sistema.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,7 +94,7 @@ export function SimulatorModal() {
 
         <form onSubmit={handleSimulate} className="space-y-4 pt-2">
           <div className="space-y-2">
-            <Label>Telefone de Origem (Ex: 5551999999991)</Label>
+            <Label>Telefone de Origem (Cliente)</Label>
             <Input required value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
           <div className="space-y-2">
@@ -104,18 +104,22 @@ export function SimulatorModal() {
           <div className="flex items-center gap-2">
             <Switch checked={hasMedia} onCheckedChange={setHasMedia} id="media-mode" />
             <Label htmlFor="media-mode" className="cursor-pointer">
-              Incluir anexo de mídia (imagem/pdf)
+              Simular anexo de mídia na requisição (imagem/pdf)
             </Label>
           </div>
-          <div className="text-xs text-muted-foreground p-3 bg-muted rounded-md mt-4">
-            <strong>Como funciona:</strong> A IA tentará identificar o cliente pelo número. Se a
-            intenção for envio de comprovante e for um cliente conhecido, gerará um <em>Receipt</em>{' '}
-            para validação (se o comprovante for válido e houver estoque). Se não encontrar o
-            cliente ou for uma dúvida complexa, a intenção será encaminhada para humano. Logs de
-            auditoria serão gerados.
+          <div className="text-xs text-muted-foreground p-3 bg-muted rounded-md mt-4 space-y-2">
+            <p>
+              <strong>Como funciona:</strong> Este formulário simula um POST recebido da Meta API no
+              endpoint <code>/api/webhook</code>.
+            </p>
+            <p>
+              O sistema monitora mensagens recebidas no número oficial configurado (
+              <strong>5551996111046</strong>). A IA tentará identificar o cliente remetente, extrair
+              os dados e, se for comprovante, vincular a transação ao módulo Financeiro.
+            </p>
           </div>
           <div className="flex justify-end pt-4">
-            <Button type="submit" className="gap-2">
+            <Button type="submit" className="gap-2 bg-primary text-primary-foreground">
               Disparar Webhook
             </Button>
           </div>
