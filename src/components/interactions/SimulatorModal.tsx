@@ -11,6 +11,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Play } from 'lucide-react'
 import useMainStore from '@/stores/useMainStore'
 import { useToast } from '@/hooks/use-toast'
@@ -22,12 +29,13 @@ export function SimulatorModal() {
   const [phone, setPhone] = useState('5551999999991')
   const [message, setMessage] = useState('Segue o comprovante do pagamento.')
   const [hasMedia, setHasMedia] = useState(true)
+  const [source, setSource] = useState<'Meta' | 'Evolution'>('Evolution')
 
   const handleSimulate = (e: React.FormEvent) => {
     e.preventDefault()
-    simulateWebhookMessage(phone, message, hasMedia)
+    simulateWebhookMessage(phone, message, hasMedia, source)
     toast({
-      title: 'Webhook Simulado',
+      title: `Webhook Simulado (${source})`,
       description: 'Mensagem recebida e processada pelo Agente de IA e Pipeline Financeiro.',
     })
     setOpen(false)
@@ -60,17 +68,17 @@ export function SimulatorModal() {
         <DialogHeader>
           <DialogTitle>Simulador de Payload WhatsApp</DialogTitle>
           <DialogDescription>
-            Simule o recebimento de um evento da Meta API (POST) para testar a IA e a automação do
-            sistema.
+            Simule o recebimento de um evento (POST) das APIs de mensageria para testar a IA e
+            automações.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-2 pb-2 border-b">
+        <div className="flex gap-2 pb-2 border-b overflow-x-auto">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => loadScenario('comprovante')}
-            className="text-xs"
+            className="text-xs whitespace-nowrap"
           >
             Cenário: Comprovante
           </Button>
@@ -78,7 +86,7 @@ export function SimulatorModal() {
             variant="secondary"
             size="sm"
             onClick={() => loadScenario('duvida')}
-            className="text-xs"
+            className="text-xs whitespace-nowrap"
           >
             Cenário: Dúvida
           </Button>
@@ -86,16 +94,30 @@ export function SimulatorModal() {
             variant="secondary"
             size="sm"
             onClick={() => loadScenario('humano')}
-            className="text-xs"
+            className="text-xs whitespace-nowrap"
           >
             Cenário: Atendimento Humano
           </Button>
         </div>
 
         <form onSubmit={handleSimulate} className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label>Telefone de Origem (Cliente)</Label>
-            <Input required value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Telefone (Remetente)</Label>
+              <Input required value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Origem (Integração)</Label>
+              <Select value={source} onValueChange={(v: 'Meta' | 'Evolution') => setSource(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Evolution">Evolution API (QR Code)</SelectItem>
+                  <SelectItem value="Meta">Meta Cloud API (Oficial)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Mensagem de Texto</Label>
@@ -109,13 +131,13 @@ export function SimulatorModal() {
           </div>
           <div className="text-xs text-muted-foreground p-3 bg-muted rounded-md mt-4 space-y-2">
             <p>
-              <strong>Como funciona:</strong> Este formulário simula um POST recebido da Meta API no
-              endpoint <code>/api/webhook</code>.
+              <strong>Como funciona:</strong> Este formulário simula um POST recebido no endpoint
+              unificado <code>/api/webhook</code>.
             </p>
             <p>
-              O sistema monitora mensagens recebidas no número oficial configurado (
-              <strong>5551996111046</strong>). A IA tentará identificar o cliente remetente, extrair
-              os dados e, se for comprovante, vincular a transação ao módulo Financeiro.
+              Independente da origem da mensagem, o pipeline do FinanceFlow processa o texto para
+              extrair a intenção, identifica o cliente e age caso seja um comprovante de pagamento
+              válido.
             </p>
           </div>
           <div className="flex justify-end pt-4">

@@ -144,6 +144,12 @@ export type MetaApiConfig = {
   verifyToken: string
 }
 
+export type EvolutionApiConfig = {
+  instanceUrl: string
+  apiKey: string
+  instanceName: string
+}
+
 export type InteractionIntent =
   | 'solicitar informações sobre vencimento'
   | 'consultar status do pagamento'

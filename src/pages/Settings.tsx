@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useMainStore from '@/stores/useMainStore'
 import { useToast } from '@/hooks/use-toast'
 import { Save, Copy } from 'lucide-react'
+import { EvolutionApiTab } from '@/components/settings/EvolutionApiTab'
 
 export default function Settings() {
   const { templates, updateTemplates, metaConfig, updateMetaConfig } = useMainStore()
@@ -44,15 +45,27 @@ export default function Settings() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Configurações</h2>
         <p className="text-muted-foreground text-sm">
-          Gerencie os templates de comunicação e a integração com a API Oficial do WhatsApp (Meta).
+          Gerencie os templates de comunicação e integrações de mensagens para atendimento
+          automático.
         </p>
       </div>
 
-      <Tabs defaultValue="templates" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
-          <TabsTrigger value="templates">Templates Padrão</TabsTrigger>
-          <TabsTrigger value="meta">Integração (Meta API)</TabsTrigger>
+      <Tabs defaultValue="evolution" className="w-full">
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 max-w-[600px] h-auto">
+          <TabsTrigger value="templates" className="py-2">
+            Templates Padrão
+          </TabsTrigger>
+          <TabsTrigger value="evolution" className="py-2">
+            Evolution API
+          </TabsTrigger>
+          <TabsTrigger value="meta" className="py-2">
+            Integração Meta
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="evolution" className="mt-4">
+          <EvolutionApiTab />
+        </TabsContent>
 
         <TabsContent value="templates" className="mt-4">
           <Card>
@@ -136,7 +149,7 @@ export default function Settings() {
               <CardTitle>Integração Backend: Meta Cloud API</CardTitle>
               <CardDescription>
                 Configure as credenciais do seu aplicativo na plataforma Meta para receber
-                interações reais do WhatsApp no número oficial (5551996111046).
+                interações reais do WhatsApp no número oficial de negócios.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

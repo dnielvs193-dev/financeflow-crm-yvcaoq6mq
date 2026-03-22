@@ -9,6 +9,7 @@ import {
   Payable,
   MessageTemplates,
   MetaApiConfig,
+  EvolutionApiConfig,
   Interaction,
   Receipt,
   InteractionIntent,
@@ -44,6 +45,9 @@ type MainStoreContextType = {
   payables: Payable[]
   templates: MessageTemplates
   metaConfig: MetaApiConfig
+  evolutionConfig: EvolutionApiConfig
+  evolutionStatus: 'disconnected' | 'connecting' | 'connected'
+  evolutionQrCode: string | null
   interactions: Interaction[]
   receipts: Receipt[]
   searchQuery: string
@@ -108,7 +112,16 @@ type MainStoreContextType = {
   payPayable: (id: string) => void
   updateTemplates: (t: MessageTemplates) => void
   updateMetaConfig: (c: MetaApiConfig) => void
-  simulateWebhookMessage: (phone: string, text: string, hasMedia: boolean) => void
+  updateEvolutionConfig: (c: EvolutionApiConfig) => void
+  generateEvolutionQr: () => void
+  simulateEvolutionConnect: () => void
+  disconnectEvolution: () => void
+  simulateWebhookMessage: (
+    phone: string,
+    text: string,
+    hasMedia: boolean,
+    source?: 'Meta' | 'Evolution',
+  ) => void
   updateReceiptStatus: (id: string, status: ReceiptStatus, actor?: 'User' | 'System') => void
   updateInteractionStatus: (id: string, status: InteractionStatus) => void
 }
@@ -216,6 +229,21 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     return { accessToken: '', phoneNumberId: '', wabaId: '', verifyToken: '' }
   })
 
+  const [evolutionConfig, setEvolutionConfig] = useState<EvolutionApiConfig>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:evolutionConfig')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse evolutionConfig', e)
+    }
+    return { instanceUrl: '', apiKey: '', instanceName: '' }
+  })
+
+  const [evolutionStatus, setEvolutionStatus] = useState<
+    'disconnected' | 'connecting' | 'connected'
+  >('disconnected')
+  const [evolutionQrCode, setEvolutionQrCode] = useState<string | null>(null)
+
   const [interactions, setInteractions] = useState<Interaction[]>(() => {
     try {
       const saved = localStorage.getItem('@financeflow:interactions')
@@ -263,6 +291,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem('@financeflow:metaConfig', JSON.stringify(metaConfig))
   }, [metaConfig])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:evolutionConfig', JSON.stringify(evolutionConfig))
+  }, [evolutionConfig])
   useEffect(() => {
     localStorage.setItem('@financeflow:interactions', JSON.stringify(interactions))
   }, [interactions])
@@ -601,6 +632,22 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
   const updateTemplates = (newTemplates: MessageTemplates) => setTemplates(newTemplates)
   const updateMetaConfig = (config: MetaApiConfig) => setMetaConfig(config)
+  const updateEvolutionConfig = (config: EvolutionApiConfig) => setEvolutionConfig(config)
+
+  const generateEvolutionQr = () => {
+    setEvolutionStatus('connecting')
+    setEvolutionQrCode('https://img.usecurling.com/i?q=qrcode&shape=lineal-color')
+  }
+
+  const simulateEvolutionConnect = () => {
+    setEvolutionStatus('connected')
+    setEvolutionQrCode(null)
+  }
+
+  const disconnectEvolution = () => {
+    setEvolutionStatus('disconnected')
+    setEvolutionQrCode(null)
+  }
 
   const addAuditLogToInteraction = (interactionId: string | undefined, log: AuditLog) => {
     if (!interactionId) return
@@ -611,7 +658,12 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     )
   }
 
-  const simulateWebhookMessage = (phone: string, text: string, hasMedia: boolean) => {
+  const simulateWebhookMessage = (
+    phone: string,
+    text: string,
+    hasMedia: boolean,
+    source: 'Meta' | 'Evolution' = 'Meta',
+  ) => {
     let cleanedPhone = cleanPhone(phone)
     if (cleanedPhone.startsWith('0')) cleanedPhone = cleanedPhone.substring(1)
     if (!cleanedPhone.startsWith('55')) cleanedPhone = `55${cleanedPhone}`
@@ -667,6 +719,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     const interactionId = Math.random().toString(36).substr(2, 9)
     let receiptId = undefined
 
+    const sourceName = source === 'Evolution' ? 'Evolution API' : 'Meta Cloud API'
+
     const auditLogs: AuditLog[] = [
       {
         id: Math.random().toString(36).substr(2, 9),
@@ -674,7 +728,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         action: 'Webhook Recebido',
         actor: 'System',
         correlationId,
-        details: `Payload Meta Cloud API processado via /api/webhook. (Destino: 5551996111046)`,
+        details: `Payload ${sourceName} processado via /api/webhook. (Destino: 5551996111046)`,
       },
       {
         id: Math.random().toString(36).substr(2, 9),
@@ -962,6 +1016,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         payables,
         templates,
         metaConfig,
+        evolutionConfig,
+        evolutionStatus,
+        evolutionQrCode,
         interactions,
         receipts,
         searchQuery,
@@ -1019,6 +1076,10 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         payPayable,
         updateTemplates,
         updateMetaConfig,
+        updateEvolutionConfig,
+        generateEvolutionQr,
+        simulateEvolutionConnect,
+        disconnectEvolution,
         simulateWebhookMessage,
         updateReceiptStatus,
         updateInteractionStatus,
