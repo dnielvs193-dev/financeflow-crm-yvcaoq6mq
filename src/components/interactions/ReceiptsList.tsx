@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import useMainStore from '@/stores/useMainStore'
 import { maskPhone } from '@/lib/formatters'
-import { Check, X, Eye } from 'lucide-react'
+import { Check, X, Eye, FileText } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export function ReceiptsList() {
   const { receipts, clients, validateReceipt } = useMainStore()
@@ -29,6 +30,12 @@ export function ReceiptsList() {
         return (
           <Badge className="bg-orange-500/15 text-orange-600 hover:bg-orange-500/25 border-0">
             Aguardando Análise
+          </Badge>
+        )
+      case 'em_analise':
+        return (
+          <Badge className="bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/25 border-0">
+            Requer Atenção (Estoque/Dados)
           </Badge>
         )
       case 'validado':
@@ -85,16 +92,30 @@ export function ReceiptsList() {
                   <Eye className="h-4 w-4" /> Ver Mídia
                 </a>
               </TableCell>
-              <TableCell>{getStatusBadge(rec.status)}</TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1 items-start">
+                  {getStatusBadge(rec.status)}
+                  {rec.notes && (
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help flex items-center gap-1 text-[10px] text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded">
+                        <FileText className="h-3 w-3" /> Notas
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{rec.notes}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </TableCell>
               <TableCell className="text-right space-x-2">
-                {rec.status === 'recebido' ? (
+                {rec.status === 'recebido' || rec.status === 'em_analise' ? (
                   <>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => validateReceipt(rec.id, true)}
                       className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                      title="Aprova pagamento e executa renovação automática de 30 dias."
+                      title="Aprova pagamento e executa renovação automática de 30 dias (se houver estoque)."
                     >
                       <Check className="h-4 w-4" /> Aprovar
                     </Button>

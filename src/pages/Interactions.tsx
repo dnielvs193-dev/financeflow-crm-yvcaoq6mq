@@ -11,8 +11,13 @@ export default function Interactions() {
   const [activeTab, setActiveTab] = useState<'chats' | 'receipts'>('conversations')
   const { interactions, receipts } = useMainStore()
 
-  const humanReqCount = interactions.filter((i) => i.status === 'requires_human').length
-  const pendingReceiptsCount = receipts.filter((r) => r.status === 'recebido').length
+  const humanReqCount = interactions.filter(
+    (i) => i.status === 'aguardando_atendimento_humano',
+  ).length
+  const pendingReceiptsCount = receipts.filter(
+    (r) => r.status === 'recebido' || r.status === 'em_analise',
+  ).length
+  const autoRenewalsCount = interactions.filter((i) => i.status === 'renovacao_executada').length
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up">
@@ -55,7 +60,7 @@ export default function Interactions() {
               <FileCheck className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Comprovantes Pend.</p>
+              <p className="text-sm font-medium text-muted-foreground">Comp. Pendentes</p>
               <p className="text-2xl font-bold text-orange-600">{pendingReceiptsCount}</p>
             </div>
           </CardContent>
@@ -66,10 +71,8 @@ export default function Interactions() {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Renovações Automáticas</p>
-              <p className="text-2xl font-bold text-green-600">
-                {receipts.filter((r) => r.status === 'validado').length}
-              </p>
+              <p className="text-sm font-medium text-muted-foreground">Renovações IA (Sucesso)</p>
+              <p className="text-2xl font-bold text-green-600">{autoRenewalsCount}</p>
             </div>
           </CardContent>
         </Card>

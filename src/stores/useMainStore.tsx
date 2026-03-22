@@ -65,6 +65,11 @@ type MainStoreContextType = {
   resellerCityFilter: string
   setResellerCityFilter: (s: string) => void
   filteredResellers: Reseller[]
+  intSearchQuery: string
+  setIntSearchQuery: (q: string) => void
+  intStatusFilter: string
+  setIntStatusFilter: (s: string) => void
+  filteredInteractions: Interaction[]
   activePayables: boolean
   setActivePayables: (v: boolean) => void
   addClient: (c: Omit<Client, 'id'>) => void
@@ -259,6 +264,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [resellerSearchQuery, setResellerSearchQuery] = useState('')
   const [resellerStatusFilter, setResellerStatusFilter] = useState('all')
   const [resellerCityFilter, setResellerCityFilter] = useState('all')
+
+  const [intSearchQuery, setIntSearchQuery] = useState('')
+  const [intStatusFilter, setIntStatusFilter] = useState('all')
 
   const [activePayables, setActivePayables] = useState(false)
 
@@ -586,15 +594,16 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
     let intent: InteractionIntent = 'dúvidas gerais'
     let confidence = 0.85
-    let status: InteractionStatus = 'bot_handled'
+    let status: InteractionStatus = clientMatch ? 'cliente_identificado' : 'novo_contato'
     const textLower = text.toLowerCase()
 
     if (textLower.includes('humano') || textLower.includes('atendente')) {
       intent = 'solicitar suporte humano'
-      status = 'requires_human'
+      status = 'aguardando_atendimento_humano'
       confidence = 0.95
     } else if (hasMedia || textLower.includes('comprovante') || textLower.includes('pix')) {
       intent = 'enviar comprovante'
+      status = 'comprovante_recebido'
     } else if (textLower.includes('vencimento') || textLower.includes('vence')) {
       intent = 'solicitar informações sobre vencimento'
     } else if (textLower.includes('renovar')) {
@@ -603,9 +612,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       intent = 'consultar status do pagamento'
     }
 
-    if (!clientMatch && status !== 'requires_human') {
+    if (!clientMatch && status !== 'aguardando_atendimento_humano' && status !== 'novo_contato') {
       confidence = 0.4
-      status = 'requires_human'
+      status = 'aguardando_atendimento_humano'
     }
 
     const interactionId = Math.random().toString(36).substr(2, 9)
@@ -622,7 +631,6 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         status: 'recebido',
       }
       setReceipts((prev) => [newReceipt, ...prev])
-      status = 'requires_human' // Wait for human validation by default, or AI could validate
     }
 
     const newInteraction: Interaction = {
@@ -653,12 +661,78 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     if (!receipt) return
 
     if (isValid) {
-      setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'validado' } : r)))
       if (receipt.clientId) {
-        renewClient(receipt.clientId, 30) // Assuming standard 30d renewal
+        const client = clients.find((c) => c.id === receipt.clientId)
+        if (client) {
+          const invItem = inventory.find(
+            (i) => i.name.toLowerCase() === client.service.toLowerCase(),
+          )
+
+          // Intelligent Rules engine: Block renewal if stock is 0 and requires control
+          if (invItem && invItem.stockControl && invItem.currentStock <= 0) {
+            setReceipts((prev) =>
+              prev.map((r) =>
+                r.id === id
+                  ? { ...r, status: 'em_analise', notes: 'Estoque insuficiente no CRM.' }
+                  : r,
+              ),
+            )
+            setInteractions((prev) =>
+              prev.map((i) =>
+                i.receiptId === id
+                  ? {
+                      ...i,
+                      status: 'aguardando_atendimento_humano',
+                      errorLog: 'Falha Auto-Renovação: Estoque insuficiente do item associado.',
+                    }
+                  : i,
+              ),
+            )
+            return // Route to human handler
+          }
+
+          renewClient(client.id, 30) // Assuming standard 30d renewal
+          setReceipts((prev) =>
+            prev.map((r) =>
+              r.id === id
+                ? {
+                    ...r,
+                    status: 'validado',
+                    notes: 'Auto-renovado +30d e lançamento gerado no financeiro.',
+                  }
+                : r,
+            ),
+          )
+          setInteractions((prev) =>
+            prev.map((i) =>
+              i.receiptId === id
+                ? {
+                    ...i,
+                    status: 'renovacao_executada',
+                    actionExecuted: 'Renovado +30 dias',
+                  }
+                : i,
+            ),
+          )
+        } else {
+          // No client ID mapped
+          setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'em_analise' } : r)))
+          setInteractions((prev) =>
+            prev.map((i) =>
+              i.receiptId === id ? { ...i, status: 'aguardando_atendimento_humano' } : i,
+            ),
+          )
+        }
       }
     } else {
       setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'rejeitado' } : r)))
+      setInteractions((prev) =>
+        prev.map((i) =>
+          i.receiptId === id
+            ? { ...i, status: 'pagamento_nao_validado', errorLog: 'Operador rejeitou comprovante.' }
+            : i,
+        ),
+      )
     }
   }
 
@@ -728,6 +802,26 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     )
   }, [resellers, resellerSearchQuery, resellerStatusFilter, resellerCityFilter])
 
+  const filteredInteractions = useMemo(() => {
+    let filtered = interactions.filter((i) => {
+      if (intStatusFilter !== 'all' && i.status !== intStatusFilter) return false
+      if (intSearchQuery) {
+        const q = intSearchQuery.toLowerCase()
+        const clientName = clients.find((c) => c.id === i.clientId)?.name?.toLowerCase() || ''
+        return (
+          i.phone.includes(q) ||
+          i.message.toLowerCase().includes(q) ||
+          i.intent?.toLowerCase().includes(q) ||
+          clientName.includes(q)
+        )
+      }
+      return true
+    })
+    return filtered.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    )
+  }, [interactions, intSearchQuery, intStatusFilter, clients])
+
   return (
     <MainStoreContext.Provider
       value={{
@@ -764,6 +858,11 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         resellerCityFilter,
         setResellerCityFilter,
         filteredResellers,
+        intSearchQuery,
+        setIntSearchQuery,
+        intStatusFilter,
+        setIntStatusFilter,
+        filteredInteractions,
         activePayables,
         setActivePayables,
         addClient,

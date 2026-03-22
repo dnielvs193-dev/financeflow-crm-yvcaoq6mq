@@ -147,7 +147,17 @@ export type InteractionIntent =
   | 'solicitar suporte humano'
   | 'dúvidas gerais'
 
-export type InteractionStatus = 'bot_handled' | 'requires_human' | 'resolved'
+export type InteractionStatus =
+  | 'novo_contato'
+  | 'cliente_identificado'
+  | 'aguardando_comprovante'
+  | 'comprovante_recebido'
+  | 'comprovante_em_analise'
+  | 'pagamento_validado'
+  | 'pagamento_nao_validado'
+  | 'renovacao_executada'
+  | 'aguardando_atendimento_humano'
+  | 'encerrado'
 
 export type Interaction = {
   id: string
@@ -164,6 +174,7 @@ export type Interaction = {
   timestamp: string
   correlationId: string
   isOutbound: boolean
+  errorLog?: string
 }
 
 export type ReceiptStatus = 'recebido' | 'em_analise' | 'validado' | 'rejeitado'

@@ -33,6 +33,22 @@ export function SimulatorModal() {
     setOpen(false)
   }
 
+  const loadScenario = (scenario: 'comprovante' | 'duvida' | 'humano') => {
+    if (scenario === 'comprovante') {
+      setPhone('5551999999991') // Known client
+      setMessage('Segue o pix do vencimento de hoje')
+      setHasMedia(true)
+    } else if (scenario === 'duvida') {
+      setPhone('5551999999992') // Known client
+      setMessage('Quando vence minha conta?')
+      setHasMedia(false)
+    } else if (scenario === 'humano') {
+      setPhone('5511988887777') // Unknown client
+      setMessage('Quero falar com um atendente agora')
+      setHasMedia(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -48,7 +64,35 @@ export function SimulatorModal() {
             regras de negócio.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSimulate} className="space-y-4 pt-4">
+
+        <div className="flex gap-2 pb-2 border-b">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => loadScenario('comprovante')}
+            className="text-xs"
+          >
+            Cenário: Comprovante
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => loadScenario('duvida')}
+            className="text-xs"
+          >
+            Cenário: Dúvida
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => loadScenario('humano')}
+            className="text-xs"
+          >
+            Cenário: Atendimento Humano
+          </Button>
+        </div>
+
+        <form onSubmit={handleSimulate} className="space-y-4 pt-2">
           <div className="space-y-2">
             <Label>Telefone de Origem (Ex: 5551999999991)</Label>
             <Input required value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -64,8 +108,10 @@ export function SimulatorModal() {
             </Label>
           </div>
           <div className="text-xs text-muted-foreground p-3 bg-muted rounded-md mt-4">
-            <strong>Dica:</strong> Tente usar palavras como "vencimento", "renovar", "atendente", ou
-            "comprovante" para ver classificações diferentes.
+            <strong>Como funciona:</strong> A IA tentará identificar o cliente pelo número. Se a
+            intenção for envio de comprovante e for um cliente conhecido, gerará um <em>Receipt</em>{' '}
+            para validação (se o comprovante for válido e houver estoque). Se não encontrar o
+            cliente ou for uma dúvida complexa, a intenção será encaminhada para humano.
           </div>
           <div className="flex justify-end pt-4">
             <Button type="submit" className="gap-2">
