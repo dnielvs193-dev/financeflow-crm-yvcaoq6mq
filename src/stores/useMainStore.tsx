@@ -8,8 +8,12 @@ import {
   Reseller,
   Payable,
   MessageTemplates,
+  Interaction,
+  Receipt,
+  InteractionIntent,
+  InteractionStatus,
 } from '@/types'
-import { getClientStatus } from '@/lib/formatters'
+import { getClientStatus, cleanPhone } from '@/lib/formatters'
 import {
   mockClients,
   mockBanks,
@@ -18,6 +22,8 @@ import {
   mockTiers,
   mockResellers,
   mockPayables,
+  mockInteractions,
+  mockReceipts,
 } from '@/lib/mockData'
 
 export type ProcessTxPayload =
@@ -34,6 +40,8 @@ type MainStoreContextType = {
   resellers: Reseller[]
   payables: Payable[]
   templates: MessageTemplates
+  interactions: Interaction[]
+  receipts: Receipt[]
   searchQuery: string
   setSearchQuery: (q: string) => void
   statusFilter: string
@@ -90,6 +98,9 @@ type MainStoreContextType = {
   deletePayable: (id: string) => void
   payPayable: (id: string) => void
   updateTemplates: (t: MessageTemplates) => void
+  simulateWebhookMessage: (phone: string, text: string, hasMedia: boolean) => void
+  validateReceipt: (id: string, isValid: boolean) => void
+  updateInteractionStatus: (id: string, status: InteractionStatus) => void
 }
 
 const MainStoreContext = createContext<MainStoreContextType | undefined>(undefined)
@@ -185,6 +196,26 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     return defaultTemplates
   })
 
+  const [interactions, setInteractions] = useState<Interaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:interactions')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse interactions from local storage', e)
+    }
+    return mockInteractions
+  })
+
+  const [receipts, setReceipts] = useState<Receipt[]>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:receipts')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse receipts from local storage', e)
+    }
+    return mockReceipts
+  })
+
   useEffect(() => {
     localStorage.setItem('@financeflow:clients', JSON.stringify(clients))
   }, [clients])
@@ -209,6 +240,12 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem('@financeflow:templates', JSON.stringify(templates))
   }, [templates])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:interactions', JSON.stringify(interactions))
+  }, [interactions])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:receipts', JSON.stringify(receipts))
+  }, [receipts])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -538,6 +575,97 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
   const updateTemplates = (newTemplates: MessageTemplates) => setTemplates(newTemplates)
 
+  const simulateWebhookMessage = (phone: string, text: string, hasMedia: boolean) => {
+    const cleanedPhone = cleanPhone(phone)
+    const clientMatch = clients.find((c) => {
+      const cPhone = cleanPhone(c.phone)
+      return (
+        cPhone === cleanedPhone || cPhone === '55' + cleanedPhone || '55' + cPhone === cleanedPhone
+      )
+    })
+
+    let intent: InteractionIntent = 'dúvidas gerais'
+    let confidence = 0.85
+    let status: InteractionStatus = 'bot_handled'
+    const textLower = text.toLowerCase()
+
+    if (textLower.includes('humano') || textLower.includes('atendente')) {
+      intent = 'solicitar suporte humano'
+      status = 'requires_human'
+      confidence = 0.95
+    } else if (hasMedia || textLower.includes('comprovante') || textLower.includes('pix')) {
+      intent = 'enviar comprovante'
+    } else if (textLower.includes('vencimento') || textLower.includes('vence')) {
+      intent = 'solicitar informações sobre vencimento'
+    } else if (textLower.includes('renovar')) {
+      intent = 'pedir confirmação de renovação'
+    } else if (textLower.includes('status') || textLower.includes('pago')) {
+      intent = 'consultar status do pagamento'
+    }
+
+    if (!clientMatch && status !== 'requires_human') {
+      confidence = 0.4
+      status = 'requires_human'
+    }
+
+    const interactionId = Math.random().toString(36).substr(2, 9)
+    let receiptId = undefined
+
+    if (intent === 'enviar comprovante' && hasMedia) {
+      receiptId = Math.random().toString(36).substr(2, 9)
+      const newReceipt: Receipt = {
+        id: receiptId,
+        clientId: clientMatch?.id,
+        phone: cleanedPhone,
+        timestamp: new Date().toISOString(),
+        fileAttachment: 'https://img.usecurling.com/p/400/600?q=receipt&color=gray',
+        status: 'recebido',
+      }
+      setReceipts((prev) => [newReceipt, ...prev])
+      status = 'requires_human' // Wait for human validation by default, or AI could validate
+    }
+
+    const newInteraction: Interaction = {
+      id: interactionId,
+      conversationId: Math.random().toString(36).substr(2, 9),
+      clientId: clientMatch?.id,
+      phone: cleanedPhone,
+      channel: 'whatsapp',
+      message: text,
+      intent,
+      aiConfidence: confidence,
+      receiptId,
+      status,
+      timestamp: new Date().toISOString(),
+      correlationId: 'sim_' + Date.now(),
+      isOutbound: false,
+    }
+
+    setInteractions((prev) => [newInteraction, ...prev])
+
+    if (clientMatch) {
+      updateClient(clientMatch.id, { lastContactedDate: new Date().toISOString() })
+    }
+  }
+
+  const validateReceipt = (id: string, isValid: boolean) => {
+    const receipt = receipts.find((r) => r.id === id)
+    if (!receipt) return
+
+    if (isValid) {
+      setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'validado' } : r)))
+      if (receipt.clientId) {
+        renewClient(receipt.clientId, 30) // Assuming standard 30d renewal
+      }
+    } else {
+      setReceipts((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'rejeitado' } : r)))
+    }
+  }
+
+  const updateInteractionStatus = (id: string, status: InteractionStatus) => {
+    setInteractions((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i)))
+  }
+
   const filteredClients = useMemo(
     () =>
       clients.filter((c) => {
@@ -611,6 +739,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         resellers,
         payables,
         templates,
+        interactions,
+        receipts,
         searchQuery,
         setSearchQuery,
         statusFilter,
@@ -660,6 +790,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         deletePayable,
         payPayable,
         updateTemplates,
+        simulateWebhookMessage,
+        validateReceipt,
+        updateInteractionStatus,
       }}
     >
       {children}

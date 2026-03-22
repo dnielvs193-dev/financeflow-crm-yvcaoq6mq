@@ -20,7 +20,7 @@ import {
   cleanPhone,
   generateMessage,
 } from '@/lib/formatters'
-import { MoreVertical, Phone, Trash, Edit, Key } from 'lucide-react'
+import { MoreVertical, Phone, Trash, Edit, Key, MessageCircleHeart } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
@@ -40,8 +40,15 @@ const getPreviewDate = (currentDate: string, days: number) => {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(base)
 }
 
+const isRecentContact = (date?: string) => {
+  if (!date) return false
+  const diff = new Date().getTime() - new Date(date).getTime()
+  return diff < 86400000 * 2 // 48 hours
+}
+
 export function ClientList() {
-  const { clients, filteredClients, renewClient, deleteClient, templates } = useMainStore()
+  const { clients, filteredClients, renewClient, deleteClient, templates, updateClient } =
+    useMainStore()
   const { toast } = useToast()
 
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -71,26 +78,16 @@ export function ClientList() {
   }
 
   const handleWaClick = (client: Client, type: 'status' | 'credentials') => {
-    // Deep Cleaning: strip all non-digit characters
     let phone = cleanPhone(client.phone)
-
-    // Country Code Logic: Remove leading 0 if present
-    if (phone.startsWith('0')) {
-      phone = phone.substring(1)
-    }
-
-    // Country Code Logic: Prepend 55 if not already present
-    if (!phone.startsWith('55')) {
-      phone = `55${phone}`
-    }
+    if (phone.startsWith('0')) phone = phone.substring(1)
+    if (!phone.startsWith('55')) phone = `55${phone}`
 
     if (phone.length < 12) {
-      toast({
-        title: 'Telefone inválido para envio.',
-        description: 'O número sanitizado não possui dígitos suficientes para ser válido com DDD.',
+      return toast({
+        title: 'Telefone inválido',
+        description: 'O número não possui dígitos suficientes para ser válido com DDD.',
         variant: 'destructive',
       })
-      return
     }
 
     let template = templates.active
@@ -105,10 +102,11 @@ export function ClientList() {
     }
 
     const msg = generateMessage(template, client)
-    // Direct WhatsApp API Integration & Dynamic URL Generation
     const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`
 
-    // Resilient Execution: Open in new tab securely
+    // Log outbound contact
+    updateClient(client.id, { lastContactedDate: new Date().toISOString() })
+
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
@@ -163,6 +161,7 @@ export function ClientList() {
           <TableBody>
             {sortedClients.map((client) => {
               const count = nameCounts[client.name.trim().toLowerCase()] || 0
+              const isRecent = isRecentContact(client.lastContactedDate)
               return (
                 <TableRow key={client.id}>
                   <TableCell>
@@ -170,7 +169,15 @@ export function ClientList() {
                       {client.classification && (
                         <span className="text-lg">{client.classification}</span>
                       )}
-                      <div className="font-bold text-base">{client.name}</div>
+                      <div className="font-bold text-base flex items-center gap-2">
+                        {client.name}
+                        {isRecent && (
+                          <MessageCircleHeart
+                            className="h-4 w-4 text-green-500"
+                            title="Contatado recentemente via IA/Bot"
+                          />
+                        )}
+                      </div>
                       {count > 1 && (
                         <Badge
                           variant="secondary"
@@ -262,6 +269,7 @@ export function ClientList() {
       <div className="grid gap-4 lg:hidden">
         {sortedClients.map((client) => {
           const count = nameCounts[client.name.trim().toLowerCase()] || 0
+          const isRecent = isRecentContact(client.lastContactedDate)
           return (
             <Card key={client.id} className="border-none shadow-sm">
               <CardContent className="p-4">
@@ -269,6 +277,7 @@ export function ClientList() {
                   <div>
                     <h3 className="font-bold text-base flex items-center gap-1">
                       {client.classification} {client.name}
+                      {isRecent && <MessageCircleHeart className="h-4 w-4 text-green-500 ml-1" />}
                     </h3>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-medium">
                       <Phone className="h-3 w-3" /> {maskPhone(client.phone)}

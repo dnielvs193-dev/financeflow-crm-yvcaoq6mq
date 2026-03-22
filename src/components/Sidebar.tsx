@@ -8,6 +8,7 @@ import {
   Trash2,
   Network,
   Settings,
+  BotMessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +18,7 @@ export function Sidebar() {
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/clients', label: 'Clientes', icon: Users },
+    { href: '/interactions', label: 'Atendimento IA', icon: BotMessageSquare },
     { href: '/resellers', label: 'Revendas', icon: Network },
     { href: '/finance', label: 'Extrato', icon: Wallet },
     { href: '/inventory', label: 'Estoque & Serviços', icon: Box },

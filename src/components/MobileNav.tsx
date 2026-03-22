@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Wallet, Box, Network, MoreHorizontal } from 'lucide-react'
+import { LayoutDashboard, Users, Wallet, BotMessageSquare, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function MobileNav() {
@@ -8,7 +8,7 @@ export function MobileNav() {
   const navItems = [
     { href: '/', label: 'Resumo', icon: LayoutDashboard },
     { href: '/clients', label: 'Clientes', icon: Users },
-    { href: '/resellers', label: 'Revendas', icon: Network },
+    { href: '/interactions', label: 'IA Bot', icon: BotMessageSquare },
     { href: '/finance', label: 'Extrato', icon: Wallet },
     { href: '/banks', label: 'Mais', icon: MoreHorizontal },
   ]

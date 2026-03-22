@@ -1,4 +1,14 @@
-import { Client, Bank, Transaction, InventoryItem, PriceTier, Reseller, Payable } from '@/types'
+import {
+  Client,
+  Bank,
+  Transaction,
+  InventoryItem,
+  PriceTier,
+  Reseller,
+  Payable,
+  Interaction,
+  Receipt,
+} from '@/types'
 
 export const mockInventory: InventoryItem[] = [
   {
@@ -144,61 +154,10 @@ export const mockTiers: PriceTier[] = [
 ]
 
 const rawCsv = `Serviço;Status;Nome;Usuário;Senha;Vencimento;Telefone;Obs1;Obs2;Cidade;MAC;D_Key;Preço;Custo
-Unitv;Ativo;Acacio V 21k9;2l1k9q;3wqpn;19/02/2026;55 51 9...;;;Caxias;;;35,00;8,75
-Unitv;Ativo;Ademir D z728;z7n28;r5dxq;21/02/2026;55 51 9...;;;Caxias;;;35,00;8,75
-Unitv;Devedor;Ademir T d6r5w;d6r5w;e7k2n;10/02/2026;55 51 9...;Novo;;Caxias;;;35,00;8,75
-Live;Ativo;Ademar P h1s9t;h1s9t;a5v2c;22/03/2026;55 51 9...;Novo;;;;;35,00;8,00
-Unitv;Devedor;Adriane F 7ybd9;7ybd9;kplx67;28/03/2026;55 51 9...;;;Glorinha;;;35,00;8,75
-Unitv;Devedor;Alan S 3n9p;3n9p;d1c6n;07/04/2026;55 51 9...;Novo;;Gravataí;;;35,00;8,75
-Five;Devedor;Alberto T 8y65;8y65;s2v3p;16/04/2026;55 51 9...;;;Cidade;;;30,00;8,00
-Unitv;Devedor;Alessandra ufg7n;ufg7n;k4jm7b;21/03/2026;55 51 9...;jul/26;;Cidade;;;35,00;8,75
-Unitv;Devedor;Alex d3a4m;d3a4m;z8xrn2;23/04/2026;55 51 9...;Novo;;Porto Alegre;;;35,00;8,75
-Unitv;Devedor;Alex Silva 39h4n;39h4n;f7dk6m;15/04/2026;55 51 9...;MXQ P60;;Cidade;;;35,00;8,75
-Unitv;Devedor;Alex S 5s5w;5s5w;wxcx;20/03/2026;55 51 9...;MXQ P60;;Cidade;;;35,00;8,75
-Unitv;Ativo;Alexandre G 2t89;2t89;x4m3;15/04/2026;55 51 9...;04/fev Novo;;;;;35,00;8,75
-Five;Excluído;Alexandre M e4s8f;e4s8f;w5y2;12/11/2025;55 51 9...;;;Cruz;;;35,00;8,00
-Unitv;Vencido;Alexia S g5w2;g5w2;a6b8;06/03/2026;55 51 9...;;;Gravataí;;;35,00;8,75
-Live;Ativo;Aline N c9s4;c9s4;p7k2;15/04/2026;55 51 9...;Reativo;;Porto Alegre;;;35,00;8,00
-Gsat;Ativo;Aline 6890 bnm1s;bnm1s;c3x5;13/08/2026;55 51 9...;08/25 Mai Novo;;Porto Alegre;;;30,00;7,00
-Unitv;Excluído;Aline M c1b4;c1b4;m9n2;10/01/2026;55 51 9...;MXQ P60;;Gravataí;;;35,00;8,75
-Five;Ativo;Amanda L m3k8;m3k8;v2c5;01/04/2026;55 51 9...;;;Gravataí;;;35,00;8,00
-Gsat;Ativo;Anderson 411e;411e;r8d9;03/04/2026;55 51 9...;abr/26;;Gravataí;;;30,00;7,00
-Five;Ativo;Anderson 001b;001b;p4n7;15/04/2026;55 51 9...;Novo;;Gravataí;;;35,00;8,00
-Unitv;Excluído;Andreia S v9b4;v9b4;x3m2;28/02/2025;55 51 9...;;;;;;35,00;8,75
-Unitv;Ativo;Angela Z 7k1m;7k1m;b8v5;15/04/2026;55 51 9...;Alex 3010 Novo;;Glorinha;;;35,00;8,75
-Unitv;Ativo;Anna C 8x2n;8x2n;t5c9;03/04/2026;55 51 9...;Novo;;;;;35,00;8,75
-Unitv;Ativo;Antonio V g4p3;g4p3;z1m8;25/03/2026;55 51 9...;;;Cidade;;;35,00;8,75
-Unitv;Excluído;Antonio Z u2n9;u2n9;l7k4;20/08/2025;55 51 9...;;;Mato Grosso;;;35,00;8,75
-Five;Ativo;Antonio T f9b1;f9b1;y6v2;28/03/2026;55 51 9...;abr/26;;Cidade;;;35,00;8,00
-Unitv;Ativo;Ariane S h5m2;h5m2;c9x4;11/04/2026;55 51 9...;;;;;;35,00;8,75
-Unitv;Ativo;Ariane O 3v7c;3v7c;m2b8;07/04/2026;55 51 9...;;;Gravataí;;;35,00;8,75
-Five;Ativo;Marco O d1k5;d1k5;r8v3;02/04/2026;55 51 9...;MXQ P60;;Five;;;35,00;8,00
-Unitv;Ativo;Arlete M n6p2;n6p2;x4c9;18/04/2026;55 51 9...;Novo;;Gravataí;;;35,00;8,75
-Five;Ativo;Armando J 8b3m;8b3m;t1v7;11/03/2026;55 51 9...;;;Porto Alegre;;;35,00;8,00
-Unitv;Ativo;Augusto V p5z9;p5z9;k2m4;31/04/2026;55 51 9...;;;Gravataí;;;35,00;8,75
-Five;Ativo;Augusto S 4x8n;4x8n;b7c1;22/03/2026;55 51 9...;Reativo;;Gravataí;;;35,00;8,00
-Unitv;Ativo;Beatriz B 9v2c;9v2c;m5k8;08/04/2026;55 51 9...;Novo;;Cidade;;;35,00;8,75
-Five;Ativo;Betina S 7m4x;7m4x;p1v9;17/04/2026;55 51 9...;abr/26;;Gravataí;;;35,00;8,00
-Unitv;Ativo;Brian S 2c8v;2c8v;n6m3;15/04/2026;55 51 9...;abr/26 Pai;;Glorinha;;;35,00;8,75
-Five;Excluído;Bruna M 5k1p;5k1p;z4x7;15/09/2025;55 51 9...;;;Gravataí;;;35,00;8,00
-Unitv;Ativo;Bruna V w9m2;w9m2;c5b8;08/04/2026;55 51 9...;Novo;;Cidade;;;35,00;8,75
-Unitv;Ativo;Bruno T 1n7x;1n7x;v3m9;22/03/2026;55 51 9...;Novo;;Cidade;;;35,00;8,75
-Gsat;Ativo;Bruno O 6p4k;6p4k;m2b7;15/04/2026;55 51 9...;Sala;;Gravataí;;;30,00;7,00
-Unitv;Vencido;Bruno Z 8c2v;8c2v;x5n1;17/01/2026;55 51 9...;Novo;;;;;35,00;8,75
-Unitv;Ativo;Cacau B 3m9p;3m9p;v1c4;12/04/2026;55 51 9...;;;;;;35,00;8,75
-Unitv;Ativo;Camila M 7v5x;7v5x;k2n8;02/04/2026;55 51 9...;Deli Auto 26;;Canoas;;;35,00;8,75
-Unitv;Ativo;Caprioli I 4b1m;4b1m;z9v3;11/04/2026;55 51 9...;abr/26 Novo;;Glorinha;;;35,00;8,75
-Unitv;Vencido;Caprioli V 9x2c;9x2c;m5k7;11/04/2026;55 51 9...;abr/26 Pai;;Glorinha;;;35,00;8,75
-Uniplay;Ativo;Carem M 5n8p;5n8p;c1v4;23/03/2026;55 51 9...;;;Cidade;;;35,00;10,00
-Unitv;Ativo;Carla G 2v9x;2v9x;m4k1;08/04/2026;55 51 9...;Novo;;Cidade;;;35,00;8,75
-Unitv;Ativo;Carla C 8m3p;8m3p;v7c2;15/04/2026;55 51 9...;;;Espanha;;;35,00;8,75
-Live;Ativo;Carla S 1k5n;1k5n;x8m9;21/03/2026;55 51 9...;Sala;;Porto Alegre;;;35,00;8,00
-Unitv;Excluído;Carolina M 6v2c;6v2c;p9k4;04/12/2025;55 51 9...;Novo;;Espanha;;;35,00;8,75
-Unitv;Ativo;Carolina O 3n8p;3n8p;c1v5;20/04/2026;55 51 9...;Carolina 5;;Espanha;;;35,00;8,75
-Unitv;Ativo;Carolina F 9x4m;9x4m;z2v7;24/03/2026;55 51 9...;Novo;;Porto Alegre;;;35,00;8,75
-Unitv;Ativo;Carolina C 5p1k;5p1k;m8n3;23/03/2026;55 51 9...;nov/26 Carol;;Espanha;;;35,00;8,75
-Unitv;Vencido;Zuleica M 5s2d;5s2d;n8k4;11/03/2026;55 51 9...;;;Glorinha;;;35,00;8,75
-Live;Ativo;Zulema A 3f9p;3f9p;b7x1;16/04/2026;55 51 9...;;;Gravataí;;;35,00;8,00`
+Unitv;Ativo;Acacio V 21k9;2l1k9q;3wqpn;19/02/2026;55 51 999999991;;;Caxias;;;35,00;8,75
+Unitv;Ativo;Ademir D z728;z7n28;r5dxq;21/02/2026;55 51 999999992;;;Caxias;;;35,00;8,75
+Unitv;Devedor;Ademir T d6r5w;d6r5w;e7k2n;10/02/2026;55 51 999999993;Novo;;Caxias;;;35,00;8,75
+Live;Ativo;Ademar P h1s9t;h1s9t;a5v2c;22/03/2026;55 51 999999994;Novo;;;;;35,00;8,00`
 
 const parseDateString = (ds: string) => {
   if (!ds) return new Date().toISOString()
@@ -257,6 +216,7 @@ const importedImageClients: Client[] = lines.slice(1).map((line, idx) => {
     dkey: getCol('D_Key'),
     price: parseCurrency(priceStr),
     cost: parseCurrency(costStr),
+    lastContactedDate: idx === 0 ? new Date().toISOString() : undefined,
   }
 })
 
@@ -320,5 +280,33 @@ export const mockPayables: Payable[] = [
     dueDate: new Date(Date.now() + 86400000 * 12).toISOString(),
     amount: 1200.0,
     status: 'Pendente',
+  },
+]
+
+export const mockInteractions: Interaction[] = [
+  {
+    id: 'int_1',
+    conversationId: 'conv_1',
+    clientId: 'img_import_0',
+    phone: '5551999999991',
+    channel: 'whatsapp',
+    message: 'Gostaria de saber quando vence minha assinatura',
+    intent: 'solicitar informações sobre vencimento',
+    aiConfidence: 0.92,
+    status: 'bot_handled',
+    timestamp: new Date().toISOString(),
+    correlationId: 'req_123',
+    isOutbound: false,
+  },
+]
+
+export const mockReceipts: Receipt[] = [
+  {
+    id: 'rec_1',
+    clientId: 'img_import_1',
+    phone: '5551999999992',
+    timestamp: new Date().toISOString(),
+    fileAttachment: 'https://img.usecurling.com/p/300/500?q=receipt&color=blue',
+    status: 'recebido',
   },
 ]

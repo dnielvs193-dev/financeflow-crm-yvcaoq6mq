@@ -28,6 +28,7 @@ export type Client = {
   panel?: string
   deleted?: boolean
   classification?: string
+  lastContactedDate?: string
 }
 
 export type TransactionType =
@@ -134,4 +135,45 @@ export type MessageTemplates = {
   expired: string
   deleted: string
   credentials: string
+}
+
+export type InteractionIntent =
+  | 'solicitar informações sobre vencimento'
+  | 'consultar status do pagamento'
+  | 'solicitar segunda via'
+  | 'informar pagamento'
+  | 'enviar comprovante'
+  | 'pedir confirmação de renovação'
+  | 'solicitar suporte humano'
+  | 'dúvidas gerais'
+
+export type InteractionStatus = 'bot_handled' | 'requires_human' | 'resolved'
+
+export type Interaction = {
+  id: string
+  conversationId: string
+  clientId?: string
+  phone: string
+  channel: 'whatsapp'
+  message: string
+  intent?: InteractionIntent
+  aiConfidence: number
+  receiptId?: string
+  actionExecuted?: string
+  status: InteractionStatus
+  timestamp: string
+  correlationId: string
+  isOutbound: boolean
+}
+
+export type ReceiptStatus = 'recebido' | 'em_analise' | 'validado' | 'rejeitado'
+
+export type Receipt = {
+  id: string
+  clientId?: string
+  phone: string
+  timestamp: string
+  fileAttachment: string
+  notes?: string
+  status: ReceiptStatus
 }
