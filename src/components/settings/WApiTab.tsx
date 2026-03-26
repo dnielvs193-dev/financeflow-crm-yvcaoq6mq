@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import useMainStore from '@/stores/useMainStore'
 import { useToast } from '@/hooks/use-toast'
 import { Eye, EyeOff, RefreshCcw, MoreVertical, Copy } from 'lucide-react'
@@ -63,18 +64,20 @@ export function WApiTab() {
           <div className="h-4 w-px bg-green-500/30 hidden sm:block"></div>
           <div className="flex items-center gap-2">
             <Switch
+              id="wapi-connection-toggle"
               checked={formData.isActive}
               onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
               className="data-[state=checked]:bg-green-500"
             />
-            <span
+            <Label
+              htmlFor="wapi-connection-toggle"
               className={cn(
-                'text-xs font-semibold uppercase tracking-wider',
+                'text-xs font-semibold uppercase tracking-wider cursor-pointer',
                 formData.isActive ? 'text-green-400' : 'text-zinc-400',
               )}
             >
-              {formData.isActive ? 'Conexão Ativa' : 'Conexão Desativada'}
-            </span>
+              Conexão W-API
+            </Label>
           </div>
         </div>
         <Button className="bg-[#10b981] hover:bg-[#059669] text-white rounded-full px-6 h-9 font-semibold border-none transition-colors hidden sm:flex">

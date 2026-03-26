@@ -129,7 +129,8 @@ type MainStoreContextType = {
     text: string,
     hasMedia: boolean,
     source?: 'Meta' | 'Evolution' | 'W-API',
-  ) => void
+    senderLid?: string,
+  ) => boolean
   sendManualMessage: (interactionId: string, text: string) => void
   updateReceiptStatus: (id: string, status: ReceiptStatus, actor?: 'User' | 'System') => void
   updateInteractionStatus: (id: string, status: InteractionStatus) => void
@@ -148,15 +149,7 @@ const defaultTemplates: MessageTemplates = {
 }
 
 export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
-  const [currentPlan, setCurrentPlan] = useState<PlanId>(() => {
-    try {
-      const saved = localStorage.getItem('@financeflow:currentPlan')
-      if (saved) return saved as PlanId
-    } catch (e) {
-      console.error('Failed to parse plan from local storage', e)
-    }
-    return 'diamond'
-  })
+  const [currentPlan, setCurrentPlan] = useState<PlanId>('diamond')
 
   const [clients, setClients] = useState<Client[]>(() => {
     try {
@@ -757,13 +750,25 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     text: string,
     hasMedia: boolean,
     source: 'Meta' | 'Evolution' | 'W-API' = 'W-API',
-  ) => {
-    let cleanedPhone = cleanPhone(phone)
-    if (cleanedPhone.startsWith('0')) cleanedPhone = cleanedPhone.substring(1)
-    if (!cleanedPhone.startsWith('55')) cleanedPhone = `55${cleanedPhone}`
+    senderLid?: string,
+  ): boolean => {
+    if (source === 'W-API') {
+      if (!wApiConfig.isActive) return false
+      if (!wApiConfig.instanceId || !wApiConfig.instanceToken) return false
+    }
+
+    const primaryIdentifier = senderLid || phone
+    let cleanedPhone = cleanPhone(primaryIdentifier)
+    if (!cleanedPhone.includes('@lid')) {
+      if (cleanedPhone.startsWith('0')) cleanedPhone = cleanedPhone.substring(1)
+      if (!cleanedPhone.startsWith('55')) cleanedPhone = `55${cleanedPhone}`
+    }
 
     const clientMatch = clients.find((c) => {
       const cPhone = cleanPhone(c.phone)
+      if (cPhone.includes('@lid') || cleanedPhone.includes('@lid')) {
+        return cPhone === cleanedPhone
+      }
       return (
         cPhone === cleanedPhone ||
         '55' + cPhone === cleanedPhone ||
@@ -1091,6 +1096,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         )
       }, 60000)
     }
+
+    return true
   }
 
   const updateReceiptStatus = (

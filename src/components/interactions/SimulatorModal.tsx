@@ -27,23 +27,33 @@ export function SimulatorModal() {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [phone, setPhone] = useState('5551999999991')
+  const [senderLid, setSenderLid] = useState('')
   const [message, setMessage] = useState('Boa tarde')
   const [hasMedia, setHasMedia] = useState(false)
   const [source, setSource] = useState<'Meta' | 'Evolution' | 'W-API'>('W-API')
 
   const handleSimulate = (e: React.FormEvent) => {
     e.preventDefault()
-    simulateWebhookMessage(phone, message, hasMedia, source)
-    toast({
-      title: `Webhook Simulado (${source})`,
-      description: 'Mensagem recebida e processada pelo Agente de IA.',
-    })
-    setOpen(false)
+    const success = simulateWebhookMessage(phone, message, hasMedia, source, senderLid)
+    if (success) {
+      toast({
+        title: `Webhook Simulado (${source})`,
+        description: 'Mensagem recebida e processada pelo Agente de IA.',
+      })
+      setOpen(false)
+    } else {
+      toast({
+        title: 'Webhook Ignorado',
+        description: 'A integração W-API está desativada ou com credenciais inválidas.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const loadScenario = (
     scenario: 'comprovante' | 'duvida' | 'humano' | 'suporte' | 'dados' | 'vendas' | 'saudacao',
   ) => {
+    setSenderLid('')
     if (scenario === 'comprovante') {
       setPhone('5551999999991') // Known client
       setMessage('Segue o pix do vencimento de hoje')
@@ -157,21 +167,29 @@ export function SimulatorModal() {
               <Input required value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Origem (Integração)</Label>
-              <Select
-                value={source}
-                onValueChange={(v: 'Meta' | 'Evolution' | 'W-API') => setSource(v)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="W-API">W-API (Instância LITE)</SelectItem>
-                  <SelectItem value="Evolution">Evolution API (QR Code)</SelectItem>
-                  <SelectItem value="Meta">Meta Cloud API (Oficial)</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Sender LID (Opcional - W-API)</Label>
+              <Input
+                value={senderLid}
+                onChange={(e) => setSenderLid(e.target.value)}
+                placeholder="Ex: 99999999999@lid"
+              />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Origem (Integração)</Label>
+            <Select
+              value={source}
+              onValueChange={(v: 'Meta' | 'Evolution' | 'W-API') => setSource(v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="W-API">W-API (Instância LITE)</SelectItem>
+                <SelectItem value="Evolution">Evolution API (QR Code)</SelectItem>
+                <SelectItem value="Meta">Meta Cloud API (Oficial)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Mensagem de Texto</Label>

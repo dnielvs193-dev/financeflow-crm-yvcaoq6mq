@@ -37,12 +37,17 @@ export const getClientStatus = (expiryDate: string, manualStatus?: string | null
 
 export const cleanPhone = (val: string | number | null | undefined) => {
   if (!val) return ''
-  return String(val).replace(/\D/g, '')
+  const str = String(val)
+  if (str.includes('@lid')) return str.trim()
+  return str.replace(/\D/g, '')
 }
 
 export const maskPhone = (val: string | number | null | undefined) => {
   if (!val) return ''
-  let v = String(val).replace(/\D/g, '')
+  let v = String(val)
+  if (v.includes('@lid')) return v.trim()
+
+  v = v.replace(/\D/g, '')
   if (v.length > 13) v = v.substring(0, 13)
   if (v.length === 0) return ''
 
