@@ -24,7 +24,9 @@ export function WApiTab() {
           webhook_secret: records[0].webhook_secret || '',
         })
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   useEffect(() => {

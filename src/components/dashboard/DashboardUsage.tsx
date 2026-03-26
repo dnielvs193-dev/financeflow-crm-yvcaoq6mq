@@ -17,7 +17,9 @@ export function DashboardUsage() {
     try {
       const res = await pb.collection('clients').getList(1, 1)
       setActiveClients(res.totalItems)
-    } catch (e) {}
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   useEffect(() => {
