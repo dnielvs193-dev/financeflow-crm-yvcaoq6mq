@@ -12,6 +12,7 @@ routerAdd('POST', '/backend/v1/webhook/w-api', (e) => {
   const phone = body.phone || body.contact?.phone || ''
   const text = body.message?.text || body.text || body.content || ''
   const senderName = body.senderName || body.contact?.name || phone || lid || 'Desconhecido'
+  const messageStatus = body.status || body.message?.status || 'novo_contato'
 
   if (!lid && !phone) {
     return e.json(400, { error: 'Missing lid or phone' })
@@ -56,7 +57,7 @@ routerAdd('POST', '/backend/v1/webhook/w-api', (e) => {
     interaction.set('client', client.id)
     interaction.set('content', text)
     interaction.set('direction', 'inbound')
-    interaction.set('status', 'novo_contato')
+    interaction.set('status', messageStatus)
     $app.save(interaction)
   }
 

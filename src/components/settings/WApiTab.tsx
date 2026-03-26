@@ -39,7 +39,7 @@ export function WApiTab() {
         })
       }
     } catch (e) {
-      console.error(e)
+      console.error('Failed to load app_settings:', e)
     }
   }
 
@@ -67,40 +67,68 @@ export function WApiTab() {
   }
 
   const handleToggle = async (checked: boolean) => {
-    if (settings) {
-      setSettings((prev: any) => ({ ...prev, wapi_active: checked }))
-      try {
-        await pb.collection('app_settings').update(settings.id, { wapi_active: checked })
-        toast({ title: checked ? 'Conexão W-API Ativada' : 'Conexão W-API Desativada' })
-      } catch (err: any) {
-        setSettings((prev: any) => ({ ...prev, wapi_active: !checked }))
-        toast({
-          title: 'Erro ao alterar status',
-          description: getErrorMessage(err),
-          variant: 'destructive',
-        })
+    try {
+      let currentSettings = settings
+      if (!currentSettings) {
+        const records = await pb.collection('app_settings').getFullList()
+        if (records.length > 0) {
+          currentSettings = records[0]
+        } else {
+          currentSettings = await pb.collection('app_settings').create({
+            wapi_active: checked,
+            api_key: tempData.api_key || Math.random().toString(36).substring(2, 15),
+            webhook_secret: tempData.webhook_secret || '',
+          })
+          setSettings(currentSettings)
+          toast({ title: checked ? 'Conexão W-API Ativada' : 'Conexão W-API Desativada' })
+          return
+        }
       }
-    } else {
-      toast({ title: 'Configurações não carregadas', variant: 'destructive' })
+
+      await pb.collection('app_settings').update(currentSettings.id, { wapi_active: checked })
+      setSettings((prev: any) => ({ ...prev, wapi_active: checked }))
+      toast({ title: checked ? 'Conexão W-API Ativada' : 'Conexão W-API Desativada' })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao alterar status',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
     }
   }
 
   const handleSave = async () => {
-    if (settings) {
-      if (!tempData.api_key) {
-        toast({ title: 'A API Key é obrigatória.', variant: 'destructive' })
-        return
+    if (!tempData.api_key) {
+      toast({ title: 'A API Key é obrigatória.', variant: 'destructive' })
+      return
+    }
+    try {
+      let currentSettings = settings
+      if (!currentSettings) {
+        const records = await pb.collection('app_settings').getFullList()
+        if (records.length > 0) {
+          currentSettings = records[0]
+        } else {
+          currentSettings = await pb.collection('app_settings').create({
+            wapi_active: false,
+            api_key: tempData.api_key,
+            webhook_secret: tempData.webhook_secret || '',
+          })
+          setSettings(currentSettings)
+          toast({ title: 'Configurações W-API salvas com sucesso!' })
+          return
+        }
       }
-      try {
-        await pb.collection('app_settings').update(settings.id, tempData)
-        toast({ title: 'Configurações W-API salvas com sucesso!' })
-      } catch (err: any) {
-        toast({
-          title: 'Erro ao salvar',
-          description: getErrorMessage(err),
-          variant: 'destructive',
-        })
-      }
+
+      await pb.collection('app_settings').update(currentSettings.id, tempData)
+      setSettings((prev: any) => ({ ...prev, ...tempData }))
+      toast({ title: 'Configurações W-API salvas com sucesso!' })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao salvar',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
     }
   }
 
@@ -117,7 +145,7 @@ export function WApiTab() {
   }
 
   const isActive = settings?.wapi_active || false
-  const webhookUrl = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/webhook/w-api`
+  const webhookUrl = 'https://financeflow-crm-da222.goskip.app/backend/v1/webhook/w-api'
 
   return (
     <div className="bg-[#1c1c1c] text-zinc-100 rounded-xl p-6 border border-zinc-800 shadow-xl w-full max-w-2xl font-sans mt-2">
