@@ -1,7 +1,17 @@
-import { Bell } from 'lucide-react'
+import { Bell, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
+import { useNavigate } from 'react-router-dom'
 
 export function Header({ title }: { title: string }) {
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    signOut()
+    navigate('/login')
+  }
+
   return (
     <header className="h-16 px-4 md:px-6 bg-background border-b border-border flex items-center justify-between z-10 shrink-0">
       <h1 className="text-lg font-semibold tracking-tight hidden md:block">{title}</h1>
@@ -14,6 +24,15 @@ export function Header({ title }: { title: string }) {
         <div className="h-8 w-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
           <span className="text-sm font-medium text-primary">AD</span>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground ml-2"
+          onClick={handleLogout}
+          title="Sair"
+        >
+          <LogOut className="w-5 h-5" />
+        </Button>
       </div>
     </header>
   )

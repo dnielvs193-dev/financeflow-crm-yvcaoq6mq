@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -15,77 +15,95 @@ import Interactions from './pages/Interactions'
 import Billing from './pages/Billing'
 import VoiceAssistant from './pages/VoiceAssistant'
 import NotFound from './pages/NotFound'
+import Login from './pages/Login'
 import Layout from './components/Layout'
 import { MainStoreProvider } from './stores/useMainStore'
 import { FeatureGate } from './components/FeatureGate'
+import { AuthProvider, useAuth } from './hooks/use-auth'
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  return children
+}
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-    <MainStoreProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/billing" element={<Billing />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/resellers" element={<Resellers />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/trash" element={<Trash />} />
+    <AuthProvider>
+      <MainStoreProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route path="/login" element={<Login />} />
             <Route
-              path="/voice"
               element={
-                <FeatureGate feature="voice">
-                  <VoiceAssistant />
-                </FeatureGate>
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
               }
-            />
-            <Route
-              path="/interactions"
-              element={
-                <FeatureGate feature="ai_whatsapp">
-                  <Interactions />
-                </FeatureGate>
-              }
-            />
-            <Route
-              path="/finance"
-              element={
-                <FeatureGate feature="finance">
-                  <Finance />
-                </FeatureGate>
-              }
-            />
-            <Route
-              path="/inventory"
-              element={
-                <FeatureGate feature="inventory">
-                  <Inventory />
-                </FeatureGate>
-              }
-            />
-            <Route
-              path="/banks"
-              element={
-                <FeatureGate feature="banks">
-                  <Banks />
-                </FeatureGate>
-              }
-            />
-            <Route
-              path="/payables"
-              element={
-                <FeatureGate feature="payables">
-                  <Payables />
-                </FeatureGate>
-              }
-            />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
-    </MainStoreProvider>
+            >
+              <Route path="/" element={<Index />} />
+              <Route path="/billing" element={<Billing />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/resellers" element={<Resellers />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/trash" element={<Trash />} />
+              <Route
+                path="/voice"
+                element={
+                  <FeatureGate feature="voice">
+                    <VoiceAssistant />
+                  </FeatureGate>
+                }
+              />
+              <Route
+                path="/interactions"
+                element={
+                  <FeatureGate feature="ai_whatsapp">
+                    <Interactions />
+                  </FeatureGate>
+                }
+              />
+              <Route
+                path="/finance"
+                element={
+                  <FeatureGate feature="finance">
+                    <Finance />
+                  </FeatureGate>
+                }
+              />
+              <Route
+                path="/inventory"
+                element={
+                  <FeatureGate feature="inventory">
+                    <Inventory />
+                  </FeatureGate>
+                }
+              />
+              <Route
+                path="/banks"
+                element={
+                  <FeatureGate feature="banks">
+                    <Banks />
+                  </FeatureGate>
+                }
+              />
+              <Route
+                path="/payables"
+                element={
+                  <FeatureGate feature="payables">
+                    <Payables />
+                  </FeatureGate>
+                }
+              />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
+      </MainStoreProvider>
+    </AuthProvider>
   </BrowserRouter>
 )
 
