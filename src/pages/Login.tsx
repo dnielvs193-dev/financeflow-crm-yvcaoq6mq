@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 export default function Login() {
@@ -30,18 +31,30 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
               <Input
+                id="email"
                 type="email"
-                placeholder="Email"
+                placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="password">Senha</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
               <Input
+                id="password"
                 type="password"
-                placeholder="Senha"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

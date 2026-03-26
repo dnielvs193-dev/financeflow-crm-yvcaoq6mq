@@ -12,14 +12,17 @@ import {
   CreditCard,
   Mic,
   Receipt,
+  UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import useMainStore from '@/stores/useMainStore'
 import { PLANS, FeatureId } from '@/lib/plans'
+import { useAuth } from '@/hooks/use-auth'
 
 export function Sidebar() {
   const location = useLocation()
   const { currentPlan } = useMainStore()
+  const { user } = useAuth()
   const planFeatures = PLANS[currentPlan].features
 
   const navItems = [
@@ -45,6 +48,15 @@ export function Sidebar() {
   const visibleItems = navItems.filter(
     (item) => !item.feature || planFeatures.includes(item.feature as FeatureId),
   )
+
+  if (user?.role === 'admin') {
+    visibleItems.splice(visibleItems.length - 1, 0, {
+      href: '/admin/users',
+      label: 'Gestão de Usuários',
+      icon: UserCog,
+      feature: undefined as any,
+    })
+  }
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-card border-r border-border h-full">

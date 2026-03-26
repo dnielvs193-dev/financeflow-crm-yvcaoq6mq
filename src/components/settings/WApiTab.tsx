@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Eye, EyeOff, RefreshCcw, MoreVertical, Copy } from 'lucide-react'
+import { Eye, EyeOff, RefreshCcw, MoreVertical, Copy, ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -30,10 +30,27 @@ export function WApiTab() {
   }
 
   useEffect(() => {
-    loadSettings()
+    if (pb.authStore.isValid) {
+      loadSettings()
+    }
   }, [])
 
-  useRealtime('app_settings', () => loadSettings())
+  useRealtime('app_settings', () => {
+    if (pb.authStore.isValid) loadSettings()
+  })
+
+  if (!pb.authStore.isValid) {
+    return (
+      <div className="p-8 mt-2 text-center border rounded-lg bg-red-500/10 border-red-500/30 w-full max-w-2xl flex flex-col items-center justify-center gap-2">
+        <ShieldAlert className="h-10 w-10 text-red-500 mb-2" />
+        <h3 className="text-lg font-semibold text-red-600">Acesso Restrito</h3>
+        <p className="text-muted-foreground text-sm max-w-sm">
+          Sua sessão expirou ou você não possui permissão para acessar estas configurações. Por
+          favor, faça login novamente.
+        </p>
+      </div>
+    )
+  }
 
   const handleToggle = async (checked: boolean) => {
     if (settings) {

@@ -16,6 +16,9 @@ import Billing from './pages/Billing'
 import VoiceAssistant from './pages/VoiceAssistant'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import AdminUsers from './pages/AdminUsers'
+import Profile from './pages/Profile'
 import Layout from './components/Layout'
 import { MainStoreProvider } from './stores/useMainStore'
 import { FeatureGate } from './components/FeatureGate'
@@ -28,6 +31,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return children
 }
 
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user || user.role !== 'admin') return <Navigate to="/" replace />
+  return children
+}
+
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
     <AuthProvider>
@@ -37,6 +47,7 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route
               element={
                 <ProtectedRoute>
@@ -45,6 +56,15 @@ const App = () => (
               }
             >
               <Route path="/" element={<Index />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminRoute>
+                    <AdminUsers />
+                  </AdminRoute>
+                }
+              />
               <Route path="/billing" element={<Billing />} />
               <Route path="/clients" element={<Clients />} />
               <Route path="/resellers" element={<Resellers />} />
