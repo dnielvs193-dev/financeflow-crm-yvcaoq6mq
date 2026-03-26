@@ -9,6 +9,7 @@ import useMainStore from '@/stores/useMainStore'
 import { useToast } from '@/hooks/use-toast'
 import { Save, Copy, Lock } from 'lucide-react'
 import { EvolutionApiTab } from '@/components/settings/EvolutionApiTab'
+import { WApiTab } from '@/components/settings/WApiTab'
 import { PLANS } from '@/lib/plans'
 import { Link } from 'react-router-dom'
 
@@ -56,8 +57,11 @@ export default function Settings() {
         </p>
       </div>
 
-      <Tabs defaultValue="templates" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 max-w-[600px] h-auto">
+      <Tabs defaultValue="wapi" className="w-full">
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 max-w-[800px] h-auto">
+          <TabsTrigger value="wapi" className="py-2 flex gap-1 items-center">
+            Configurações W-API {!hasMeta && <Lock className="h-3 w-3" />}
+          </TabsTrigger>
           <TabsTrigger value="templates" className="py-2">
             Templates Padrão
           </TabsTrigger>
@@ -68,6 +72,24 @@ export default function Settings() {
             Integração Meta {!hasMeta && <Lock className="h-3 w-3" />}
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="wapi" className="mt-4">
+          {!hasMeta ? (
+            <div className="p-8 text-center border rounded-lg bg-muted/30 border-dashed animate-fade-in-down mt-2">
+              <Lock className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Recurso Exclusivo (Plano Diamante)</h3>
+              <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                A conexão direta com instâncias W-API para automação de WhatsApp requer o plano
+                Diamante. Faça o upgrade para automatizar todo o seu atendimento.
+              </p>
+              <Button asChild>
+                <Link to="/billing">Ver Planos e Assinar</Link>
+              </Button>
+            </div>
+          ) : (
+            <WApiTab />
+          )}
+        </TabsContent>
 
         <TabsContent value="templates" className="mt-4">
           <Card>

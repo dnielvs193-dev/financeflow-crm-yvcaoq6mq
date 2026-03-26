@@ -11,6 +11,7 @@ import {
   MessageTemplates,
   MetaApiConfig,
   EvolutionApiConfig,
+  WApiConfig,
   Interaction,
   Receipt,
   InteractionIntent,
@@ -49,6 +50,7 @@ type MainStoreContextType = {
   templates: MessageTemplates
   metaConfig: MetaApiConfig
   evolutionConfig: EvolutionApiConfig
+  wApiConfig: WApiConfig
   evolutionStatus: 'disconnected' | 'connecting' | 'connected'
   evolutionQrCode: string | null
   interactions: Interaction[]
@@ -116,6 +118,8 @@ type MainStoreContextType = {
   updateTemplates: (t: MessageTemplates) => void
   updateMetaConfig: (c: MetaApiConfig) => void
   updateEvolutionConfig: (c: EvolutionApiConfig) => void
+  updateWApiConfig: (c: WApiConfig) => void
+  resetWApiConfig: () => void
   generateEvolutionQr: () => void
   simulateEvolutionConnect: () => void
   disconnectEvolution: () => void
@@ -252,6 +256,20 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     return { instanceUrl: '', apiKey: '', instanceName: '' }
   })
 
+  const [wApiConfig, setWApiConfig] = useState<WApiConfig>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:wApiConfig')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse wApiConfig', e)
+    }
+    return {
+      instanceId: 'LITE-D8WI1J-39WIQX',
+      instanceToken: '75xqmYuG0yvZsejTUu9GhcLTMCz0kda0s',
+      instanceName: 'SKIP',
+    }
+  })
+
   const [evolutionStatus, setEvolutionStatus] = useState<
     'disconnected' | 'connecting' | 'connected'
   >('disconnected')
@@ -310,6 +328,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem('@financeflow:evolutionConfig', JSON.stringify(evolutionConfig))
   }, [evolutionConfig])
+  useEffect(() => {
+    localStorage.setItem('@financeflow:wApiConfig', JSON.stringify(wApiConfig))
+  }, [wApiConfig])
   useEffect(() => {
     localStorage.setItem('@financeflow:interactions', JSON.stringify(interactions))
   }, [interactions])
@@ -651,6 +672,14 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const updateTemplates = (newTemplates: MessageTemplates) => setTemplates(newTemplates)
   const updateMetaConfig = (config: MetaApiConfig) => setMetaConfig(config)
   const updateEvolutionConfig = (config: EvolutionApiConfig) => setEvolutionConfig(config)
+
+  const updateWApiConfig = (config: WApiConfig) => setWApiConfig(config)
+  const resetWApiConfig = () =>
+    setWApiConfig({
+      instanceId: '',
+      instanceToken: '',
+      instanceName: '',
+    })
 
   const generateEvolutionQr = () => {
     setEvolutionStatus('connecting')
@@ -1037,6 +1066,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         templates,
         metaConfig,
         evolutionConfig,
+        wApiConfig,
         evolutionStatus,
         evolutionQrCode,
         interactions,
@@ -1097,6 +1127,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         updateTemplates,
         updateMetaConfig,
         updateEvolutionConfig,
+        updateWApiConfig,
+        resetWApiConfig,
         generateEvolutionQr,
         simulateEvolutionConnect,
         disconnectEvolution,

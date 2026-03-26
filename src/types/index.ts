@@ -152,6 +152,12 @@ export type EvolutionApiConfig = {
   instanceName: string
 }
 
+export type WApiConfig = {
+  instanceId: string
+  instanceToken: string
+  instanceName: string
+}
+
 export type InteractionIntent =
   | 'solicitar informações sobre vencimento'
   | 'consultar status do pagamento'
