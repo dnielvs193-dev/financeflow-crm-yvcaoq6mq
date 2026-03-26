@@ -128,7 +128,7 @@ type MainStoreContextType = {
     phone: string,
     text: string,
     hasMedia: boolean,
-    source?: 'Meta' | 'Evolution',
+    source?: 'Meta' | 'Evolution' | 'W-API',
   ) => void
   sendManualMessage: (interactionId: string, text: string) => void
   updateReceiptStatus: (id: string, status: ReceiptStatus, actor?: 'User' | 'System') => void
@@ -155,7 +155,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
       console.error('Failed to parse plan from local storage', e)
     }
-    return 'basic'
+    return 'diamond'
   })
 
   const [clients, setClients] = useState<Client[]>(() => {
@@ -272,6 +272,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       pixKey: '12.345.678/0001-90',
       extraKnowledge:
         'Nosso horário de atendimento é das 08h às 18h. Para assinaturas anuais, oferecemos 10% de desconto.',
+      isActive: true,
     }
   })
 
@@ -686,6 +687,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       instanceName: '',
       pixKey: '',
       extraKnowledge: '',
+      isActive: false,
     })
 
   const generateEvolutionQr = () => {
@@ -722,6 +724,12 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
             text,
             timestamp: new Date().toISOString(),
           }
+          const activeSource = wApiConfig.isActive
+            ? 'W-API'
+            : evolutionStatus === 'connected'
+              ? 'Evolution API'
+              : 'Meta API'
+
           return {
             ...i,
             status: 'em_atendimento_humano',
@@ -734,7 +742,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
                 action: 'Mensagem Manual Enviada',
                 actor: 'User',
                 correlationId: i.correlationId,
-                details: `Enviado: ${text}`,
+                details: `Enviado via ${activeSource}: ${text}`,
               },
             ],
           }
@@ -748,7 +756,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     phone: string,
     text: string,
     hasMedia: boolean,
-    source: 'Meta' | 'Evolution' = 'Meta',
+    source: 'Meta' | 'Evolution' | 'W-API' = 'W-API',
   ) => {
     let cleanedPhone = cleanPhone(phone)
     if (cleanedPhone.startsWith('0')) cleanedPhone = cleanedPhone.substring(1)
@@ -893,7 +901,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
 
     let receiptId = existingInteraction?.receiptId
-    const sourceName = source === 'Evolution' ? 'Evolution API' : 'Meta Cloud API'
+    const sourceName =
+      source === 'Evolution' ? 'Evolution API' : source === 'W-API' ? 'W-API' : 'Meta Cloud API'
 
     const newLogs: AuditLog[] = [
       {

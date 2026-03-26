@@ -158,6 +158,7 @@ export type WApiConfig = {
   instanceName: string
   pixKey?: string
   extraKnowledge?: string
+  isActive?: boolean
 }
 
 export type InteractionIntent =

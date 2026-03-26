@@ -29,7 +29,7 @@ export function SimulatorModal() {
   const [phone, setPhone] = useState('5551999999991')
   const [message, setMessage] = useState('Boa tarde')
   const [hasMedia, setHasMedia] = useState(false)
-  const [source, setSource] = useState<'Meta' | 'Evolution'>('Evolution')
+  const [source, setSource] = useState<'Meta' | 'Evolution' | 'W-API'>('W-API')
 
   const handleSimulate = (e: React.FormEvent) => {
     e.preventDefault()
@@ -158,11 +158,15 @@ export function SimulatorModal() {
             </div>
             <div className="space-y-2">
               <Label>Origem (Integração)</Label>
-              <Select value={source} onValueChange={(v: 'Meta' | 'Evolution') => setSource(v)}>
+              <Select
+                value={source}
+                onValueChange={(v: 'Meta' | 'Evolution' | 'W-API') => setSource(v)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="W-API">W-API (Instância LITE)</SelectItem>
                   <SelectItem value="Evolution">Evolution API (QR Code)</SelectItem>
                   <SelectItem value="Meta">Meta Cloud API (Oficial)</SelectItem>
                 </SelectContent>

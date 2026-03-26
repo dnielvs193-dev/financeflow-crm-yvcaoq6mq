@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import useMainStore from '@/stores/useMainStore'
 import { useToast } from '@/hooks/use-toast'
-import { Eye, EyeOff, RefreshCcw, MoreVertical } from 'lucide-react'
+import { Eye, EyeOff, RefreshCcw, MoreVertical, Copy } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export function WApiTab() {
   const { wApiConfig, updateWApiConfig, resetWApiConfig } = useMainStore()
@@ -54,10 +56,28 @@ export function WApiTab() {
       </div>
 
       <div className="border border-green-500/30 bg-green-500/10 rounded-xl p-4 mb-6 flex justify-between items-center">
-        <h4 className="text-zinc-100 font-medium text-[15px]">
-          Expira em <span className="font-bold">30 dias</span>
-        </h4>
-        <Button className="bg-[#10b981] hover:bg-[#059669] text-white rounded-full px-6 h-9 font-semibold border-none transition-colors">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+          <h4 className="text-zinc-100 font-medium text-[15px]">
+            Expira em <span className="font-bold">30 dias</span>
+          </h4>
+          <div className="h-4 w-px bg-green-500/30 hidden sm:block"></div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={formData.isActive}
+              onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+              className="data-[state=checked]:bg-green-500"
+            />
+            <span
+              className={cn(
+                'text-xs font-semibold uppercase tracking-wider',
+                formData.isActive ? 'text-green-400' : 'text-zinc-400',
+              )}
+            >
+              {formData.isActive ? 'Conexão Ativa' : 'Conexão Desativada'}
+            </span>
+          </div>
+        </div>
+        <Button className="bg-[#10b981] hover:bg-[#059669] text-white rounded-full px-6 h-9 font-semibold border-none transition-colors hidden sm:flex">
           Renovar
         </Button>
       </div>
@@ -112,7 +132,7 @@ export function WApiTab() {
           </div>
         </div>
 
-        <div className="p-4 pb-3">
+        <div className="p-4 pb-3 border-b border-zinc-700/50">
           <label className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mb-1 block">
             Nome da instância
           </label>
@@ -122,6 +142,35 @@ export function WApiTab() {
             className="bg-transparent w-full text-[15px] font-medium text-zinc-100 outline-none border-none p-0 focus:ring-0"
             placeholder="Nome interno"
           />
+        </div>
+
+        <div className="p-4 pb-3 bg-[#1e1e1e]">
+          <label className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mb-1 block">
+            Webhook Endpoint URL (Recebimento)
+          </label>
+          <div className="flex gap-2 mt-1.5">
+            <input
+              readOnly
+              value="https://financeflow-crm-da222.goskip.app/api/webhook"
+              className="bg-[#262626] w-full text-[13px] font-mono text-zinc-300 outline-none border border-zinc-700/50 rounded px-3 py-2 focus:ring-0"
+            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  'https://financeflow-crm-da222.goskip.app/api/webhook',
+                )
+                toast({ title: 'URL do Webhook copiada!' })
+              }}
+              title="Copiar URL"
+              className="h-[38px] bg-[#262626] text-zinc-300 border-zinc-700 hover:bg-[#333333] hover:text-zinc-100 px-3"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-[11px] text-zinc-500 mt-2">
+            Configure esta URL no painel da W-API para receber os eventos via POST.
+          </p>
         </div>
       </div>
 

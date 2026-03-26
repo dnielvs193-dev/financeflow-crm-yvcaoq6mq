@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge'
 
 export default function Interactions() {
   const [activeTab, setActiveTab] = useState<'conversations' | 'receipts'>('conversations')
-  const { interactions, receipts, metaConfig, evolutionStatus } = useMainStore()
+  const { interactions, receipts, metaConfig, evolutionStatus, wApiConfig, currentPlan } =
+    useMainStore()
 
   const humanReqCount = interactions.filter(
     (i) => i.status === 'aguardando_atendimento_humano',
@@ -21,7 +22,10 @@ export default function Interactions() {
   const autoRenewalsCount = interactions.filter((i) => i.status === 'renovacao_executada').length
 
   const isLive =
-    Boolean(metaConfig.accessToken && metaConfig.phoneNumberId) || evolutionStatus === 'connected'
+    currentPlan === 'diamond' &&
+    (Boolean(metaConfig.accessToken && metaConfig.phoneNumberId) ||
+      evolutionStatus === 'connected' ||
+      wApiConfig.isActive)
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up">
@@ -30,14 +34,14 @@ export default function Interactions() {
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold tracking-tight">Atendimento Inteligente</h2>
             {isLive && (
-              <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1 px-2 py-0.5 animate-in fade-in zoom-in">
+              <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1 px-2 py-0.5 animate-in fade-in zoom-in shadow-sm">
                 <Wifi className="h-3 w-3 animate-pulse" /> Live (Webhooks Ativos)
               </Badge>
             )}
           </div>
           <p className="text-muted-foreground text-sm">
-            Monitoramento unificado de Webhooks (Meta / Evolution), IA de conversação e Validação de
-            Comprovantes.
+            Monitoramento unificado de Webhooks (W-API / Meta / Evolution), IA de conversação e
+            Validação de Comprovantes.
           </p>
         </div>
         <SimulatorModal />
