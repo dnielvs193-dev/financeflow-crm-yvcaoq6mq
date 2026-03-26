@@ -286,6 +286,20 @@ export const mockInteractions: Interaction[] = [
     timestamp: new Date().toISOString(),
     correlationId: 'req_123',
     isOutbound: false,
+    chatHistory: [
+      {
+        id: 'msg_1',
+        role: 'user',
+        text: 'Gostaria de saber quando vence minha assinatura',
+        timestamp: new Date().toISOString(),
+      },
+      {
+        id: 'msg_2',
+        role: 'ai',
+        text: 'Seu plano vence em 19/02/2026.',
+        timestamp: new Date(Date.now() + 1000).toISOString(),
+      },
+    ],
     auditLogs: [
       {
         id: 'aud_1',

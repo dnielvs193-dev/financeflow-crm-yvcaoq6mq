@@ -18,6 +18,7 @@ import {
   InteractionStatus,
   ReceiptStatus,
   AuditLog,
+  ChatMessage,
 } from '@/types'
 import { getClientStatus, cleanPhone, formatDate } from '@/lib/formatters'
 import {
@@ -129,6 +130,7 @@ type MainStoreContextType = {
     hasMedia: boolean,
     source?: 'Meta' | 'Evolution',
   ) => void
+  sendManualMessage: (interactionId: string, text: string) => void
   updateReceiptStatus: (id: string, status: ReceiptStatus, actor?: 'User' | 'System') => void
   updateInteractionStatus: (id: string, status: InteractionStatus) => void
 }
@@ -265,7 +267,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
     return {
       instanceId: 'LITE-D8WI1J-39WIQX',
-      instanceToken: '75xqmYuG0yvZsejTUu9GhcLTMCz0kda0s',
+      instanceToken: 'XrkcBDO35lX4MoVvOdfh6aEt7SjduvlPo',
       instanceName: 'SKIP',
       pixKey: '12.345.678/0001-90',
       extraKnowledge:
@@ -710,6 +712,38 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     )
   }
 
+  const sendManualMessage = (interactionId: string, text: string) => {
+    setInteractions((prev) =>
+      prev.map((i) => {
+        if (i.id === interactionId) {
+          const newMessage: ChatMessage = {
+            id: Math.random().toString(36).substr(2, 9),
+            role: 'human',
+            text,
+            timestamp: new Date().toISOString(),
+          }
+          return {
+            ...i,
+            status: 'em_atendimento_humano',
+            chatHistory: [...(i.chatHistory || []), newMessage],
+            auditLogs: [
+              ...(i.auditLogs || []),
+              {
+                id: Math.random().toString(36).substr(2, 9),
+                timestamp: new Date().toISOString(),
+                action: 'Mensagem Manual Enviada',
+                actor: 'User',
+                correlationId: i.correlationId,
+                details: `Enviado: ${text}`,
+              },
+            ],
+          }
+        }
+        return i
+      }),
+    )
+  }
+
   const simulateWebhookMessage = (
     phone: string,
     text: string,
@@ -731,9 +765,23 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
     const isDiamond = currentPlan === 'diamond'
 
+    let existingInteraction = interactions.find(
+      (i) => i.phone === cleanedPhone && i.status !== 'encerrado',
+    )
+    const interactionId = existingInteraction
+      ? existingInteraction.id
+      : Math.random().toString(36).substr(2, 9)
+    const correlationId = existingInteraction
+      ? existingInteraction.correlationId
+      : 'sim_' + Date.now()
+
     let intent: InteractionIntent = 'dúvidas gerais'
     let confidence = 0.85
-    let status: InteractionStatus = clientMatch ? 'cliente_identificado' : 'novo_contato'
+    let status: InteractionStatus = existingInteraction
+      ? existingInteraction.status
+      : clientMatch
+        ? 'cliente_identificado'
+        : 'novo_contato'
     const textLower = text.toLowerCase()
 
     let aiResponse = ''
@@ -743,7 +791,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     if (
       textLower.includes('humano') ||
       textLower.includes('atendente') ||
-      textLower.includes('falar com alguem')
+      textLower.includes('falar com')
     ) {
       intent = 'solicitar suporte humano'
       status = 'aguardando_atendimento_humano'
@@ -775,7 +823,6 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     } else if (
       textLower.includes('vencimento') ||
       textLower.includes('vence') ||
-      textLower.includes('dias faltam') ||
       textLower.includes('quando vence')
     ) {
       intent = 'solicitar informações sobre vencimento'
@@ -800,8 +847,6 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       textLower.includes('preço') ||
       textLower.includes('valor') ||
       textLower.includes('comprar') ||
-      textLower.includes('pagar') ||
-      textLower.includes('pagamento') ||
       textLower.includes('planos')
     ) {
       intent = 'vendas e financeiro'
@@ -829,7 +874,10 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     } else {
       if (isDiamond && wApiConfig.extraKnowledge && textLower.length > 5) {
         intent = 'dúvidas gerais'
-        aiResponse = `De acordo com nossa base: ${wApiConfig.extraKnowledge}`
+        aiResponse = `Baseado em nossas diretrizes: ${wApiConfig.extraKnowledge}`
+      } else {
+        intent = 'dúvidas gerais'
+        aiResponse = 'Como posso ajudar?'
       }
     }
 
@@ -837,19 +885,17 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       !clientMatch &&
       status !== 'aguardando_atendimento_humano' &&
       status !== 'novo_contato' &&
-      !autoRenewed
+      !autoRenewed &&
+      status !== 'em_atendimento_humano'
     ) {
       confidence = 0.4
       status = 'aguardando_atendimento_humano'
     }
 
-    const correlationId = 'sim_' + Date.now()
-    const interactionId = Math.random().toString(36).substr(2, 9)
-    let receiptId = undefined
-
+    let receiptId = existingInteraction?.receiptId
     const sourceName = source === 'Evolution' ? 'Evolution API' : 'Meta Cloud API'
 
-    const auditLogs: AuditLog[] = [
+    const newLogs: AuditLog[] = [
       {
         id: Math.random().toString(36).substr(2, 9),
         timestamp: new Date().toISOString(),
@@ -870,7 +916,6 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
     if (intent === 'enviar comprovante' && hasMedia) {
       receiptId = Math.random().toString(36).substr(2, 9)
-
       let recStatus: ReceiptStatus = autoRenewed ? 'pagamento_validado' : 'comprovante_recebido'
       let recNotes = autoRenewed
         ? 'Auto-renovado +30d e lançamento gerado no financeiro (IA).'
@@ -896,7 +941,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
         aiResponse = `Recebi seu comprovante e já renovei seu acesso até ${formatDate(newExp.toISOString())}, obrigado!`
 
-        auditLogs.push({
+        newLogs.push({
           id: Math.random().toString(36).substr(2, 9),
           timestamp: new Date().toISOString(),
           action: 'Renovação Executada',
@@ -905,7 +950,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
           details: `Comprovante analisado via OCR. Cliente ${clientMatch.name} renovado +30d automaticamente.`,
         })
       } else {
-        auditLogs.push({
+        newLogs.push({
           id: Math.random().toString(36).substr(2, 9),
           timestamp: new Date().toISOString(),
           action: 'Comprovante Extraído',
@@ -917,7 +962,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (!clientMatch) {
-      auditLogs.push({
+      newLogs.push({
         id: Math.random().toString(36).substr(2, 9),
         timestamp: new Date().toISOString(),
         action: 'Cliente Não Identificado',
@@ -928,7 +973,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (aiResponse) {
-      auditLogs.push({
+      newLogs.push({
         id: Math.random().toString(36).substr(2, 9),
         timestamp: new Date().toISOString(),
         action: 'Resposta Enviada (IA)',
@@ -938,24 +983,64 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       })
     }
 
-    const newInteraction: Interaction = {
-      id: interactionId,
-      conversationId: Math.random().toString(36).substr(2, 9),
-      clientId: clientMatch?.id,
-      phone: cleanedPhone,
-      channel: 'whatsapp',
-      message: text,
-      intent,
-      aiConfidence: confidence,
-      receiptId,
-      status,
+    const userMessage: ChatMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      role: 'user',
+      text: text,
       timestamp: new Date().toISOString(),
-      correlationId,
-      isOutbound: false,
-      auditLogs,
+      hasMedia,
     }
 
-    setInteractions((prev) => [newInteraction, ...prev])
+    let chatHistory = existingInteraction
+      ? [...(existingInteraction.chatHistory || []), userMessage]
+      : [userMessage]
+
+    if (aiResponse) {
+      chatHistory.push({
+        id: Math.random().toString(36).substr(2, 9),
+        role: 'ai',
+        text: aiResponse,
+        timestamp: new Date().toISOString(),
+      })
+    }
+
+    if (existingInteraction) {
+      setInteractions((prev) =>
+        prev.map((i) =>
+          i.id === interactionId
+            ? {
+                ...i,
+                message: text,
+                intent,
+                aiConfidence: confidence,
+                status,
+                receiptId: receiptId || i.receiptId,
+                chatHistory,
+                auditLogs: [...(i.auditLogs || []), ...newLogs],
+              }
+            : i,
+        ),
+      )
+    } else {
+      const newInteraction: Interaction = {
+        id: interactionId,
+        conversationId: Math.random().toString(36).substr(2, 9),
+        clientId: clientMatch?.id,
+        phone: cleanedPhone,
+        channel: 'whatsapp',
+        message: text,
+        intent,
+        aiConfidence: confidence,
+        receiptId,
+        status,
+        timestamp: new Date().toISOString(),
+        correlationId,
+        isOutbound: false,
+        chatHistory,
+        auditLogs: newLogs,
+      }
+      setInteractions((prev) => [newInteraction, ...prev])
+    }
 
     if (clientMatch) {
       updateClient(clientMatch.id, { lastContactedDate: new Date().toISOString() })
@@ -966,8 +1051,19 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         setInteractions((prev) =>
           prev.map((i) => {
             if (i.id === interactionId) {
+              const followUpText =
+                'Fizemos uma atualização, só precisamos que tire o modem da tomada e a TV também, me retorne se deu certo.'
               return {
                 ...i,
+                chatHistory: [
+                  ...(i.chatHistory || []),
+                  {
+                    id: Math.random().toString(36).substr(2, 9),
+                    role: 'ai',
+                    text: followUpText,
+                    timestamp: new Date().toISOString(),
+                  },
+                ],
                 auditLogs: [
                   ...(i.auditLogs || []),
                   {
@@ -976,8 +1072,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
                     action: 'Follow-up Enviado (IA)',
                     actor: 'AI',
                     correlationId,
-                    details:
-                      'Fizemos uma atualização, só precisamos que tire o modem da tomada e a TV também, me retorne se deu certo.',
+                    details: followUpText,
                   },
                 ],
               }
@@ -985,7 +1080,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
             return i
           }),
         )
-      }, 3000)
+      }, 60000)
     }
   }
 
@@ -1279,6 +1374,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         simulateEvolutionConnect,
         disconnectEvolution,
         simulateWebhookMessage,
+        sendManualMessage,
         updateReceiptStatus,
         updateInteractionStatus,
       }}

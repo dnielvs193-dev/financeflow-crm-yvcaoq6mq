@@ -183,6 +183,7 @@ export type InteractionStatus =
   | 'pagamento_nao_validado'
   | 'renovacao_executada'
   | 'aguardando_atendimento_humano'
+  | 'em_atendimento_humano'
   | 'encerrado'
 
 export type AuditLog = {
@@ -192,6 +193,14 @@ export type AuditLog = {
   actor: 'System' | 'AI' | 'User'
   correlationId: string
   details?: string
+}
+
+export type ChatMessage = {
+  id: string
+  role: 'user' | 'system' | 'human' | 'ai'
+  text: string
+  timestamp: string
+  hasMedia?: boolean
 }
 
 export type Interaction = {
@@ -210,6 +219,7 @@ export type Interaction = {
   correlationId: string
   isOutbound: boolean
   errorLog?: string
+  chatHistory?: ChatMessage[]
   auditLogs?: AuditLog[]
 }
 

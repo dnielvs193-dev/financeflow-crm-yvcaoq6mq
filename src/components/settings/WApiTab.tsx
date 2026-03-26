@@ -37,14 +37,14 @@ export function WApiTab() {
   }
 
   return (
-    <div className="bg-[#1c1c1c] text-zinc-100 rounded-xl p-6 border border-zinc-800 shadow-xl max-w-2xl font-sans mt-2">
+    <div className="bg-[#1c1c1c] text-zinc-100 rounded-xl p-6 border border-zinc-800 shadow-xl w-full max-w-2xl font-sans mt-2">
       <div className="flex justify-between items-start sm:items-center mb-6 flex-col sm:flex-row gap-4">
         <div>
           <p className="text-zinc-400 text-xs mb-0.5">Data de criação:</p>
           <p className="text-sm font-semibold tracking-wide">26/03/2026 14:16</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-yellow-500 bg-yellow-500/10 px-3 py-1 rounded-full text-xs font-semibold border border-yellow-500/20">
+          <span className="text-[#facc15] bg-[#3a2f14] px-3 py-1 rounded-full text-xs font-semibold border border-yellow-500/10 tracking-wide">
             Instância LITE
           </span>
           <button className="text-zinc-400 hover:text-zinc-200 transition-colors">
@@ -53,19 +53,20 @@ export function WApiTab() {
         </div>
       </div>
 
-      <div className="border border-[#3d3419] bg-[#292211] rounded-xl p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h4 className="text-[#facc15] font-semibold mb-1 text-[15px]">Realize o pagamento</h4>
-          <p className="text-zinc-300 text-sm">Pague R$ 19,90 para usar esta instância.</p>
-        </div>
-        <Button className="bg-[#22c55e] hover:bg-[#16a34a] text-zinc-950 rounded-full px-6 py-2 font-bold border-none transition-colors w-full sm:w-auto h-10">
-          Assinar
+      <div className="border border-green-500/30 bg-green-500/10 rounded-xl p-4 mb-6 flex justify-between items-center">
+        <h4 className="text-zinc-100 font-medium text-[15px]">
+          Expira em <span className="font-bold">30 dias</span>
+        </h4>
+        <Button className="bg-[#10b981] hover:bg-[#059669] text-white rounded-full px-6 h-9 font-semibold border-none transition-colors">
+          Renovar
         </Button>
       </div>
 
       <div className="bg-[#262626] rounded-xl border border-zinc-800/80 overflow-hidden mb-6">
         <div className="p-4 pb-3 border-b border-zinc-700/50">
-          <label className="text-zinc-400 text-xs font-medium mb-1 block">ID da instância</label>
+          <label className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mb-1 block">
+            ID da instância
+          </label>
           <input
             value={formData.instanceId}
             onChange={(e) => setFormData({ ...formData, instanceId: e.target.value })}
@@ -75,7 +76,9 @@ export function WApiTab() {
         </div>
 
         <div className="p-4 pb-3 border-b border-zinc-700/50">
-          <label className="text-zinc-400 text-xs font-medium mb-1 block">Token da instância</label>
+          <label className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mb-1 block">
+            Token da instância
+          </label>
           <div className="relative flex items-center">
             <input
               type={showToken ? 'text' : 'password'}
@@ -109,8 +112,10 @@ export function WApiTab() {
           </div>
         </div>
 
-        <div className="p-4 pb-3 border-b border-zinc-700/50">
-          <label className="text-zinc-400 text-xs font-medium mb-1 block">Nome da instância</label>
+        <div className="p-4 pb-3">
+          <label className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mb-1 block">
+            Nome da instância
+          </label>
           <input
             value={formData.instanceName}
             onChange={(e) => setFormData({ ...formData, instanceName: e.target.value })}
@@ -118,10 +123,12 @@ export function WApiTab() {
             placeholder="Nome interno"
           />
         </div>
+      </div>
 
+      <div className="bg-[#262626] rounded-xl border border-zinc-800/80 overflow-hidden mb-6">
         <div className="p-4 pb-3 border-b border-zinc-700/50">
-          <label className="text-zinc-400 text-xs font-medium mb-1 block">
-            Chave PIX (Para IA de Vendas)
+          <label className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mb-1 block">
+            Chave PIX (Para Vendas)
           </label>
           <input
             value={formData.pixKey || ''}
@@ -132,7 +139,7 @@ export function WApiTab() {
         </div>
 
         <div className="p-4 pb-3">
-          <label className="text-zinc-400 text-xs font-medium mb-1 block">
+          <label className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mb-1 block">
             Conhecimento Extra (Regras da IA)
           </label>
           <textarea
@@ -144,20 +151,39 @@ export function WApiTab() {
         </div>
       </div>
 
-      <div className="flex justify-between sm:justify-end gap-3 items-center">
-        <Button
-          onClick={handleReset}
-          variant="ghost"
-          className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 font-medium px-6 h-10 w-full sm:w-auto"
-        >
-          Resetar
-        </Button>
-        <Button
-          onClick={handleSave}
-          className="bg-[#eab308] hover:bg-[#ca8a04] text-zinc-950 font-bold px-8 h-10 w-full sm:w-auto rounded-lg"
-        >
-          Salvar
-        </Button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-2 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-white/10 p-[2px] rounded-full">
+            <img
+              src="https://img.usecurling.com/i?q=whatsapp&color=spring-green&shape=fill"
+              className="w-8 h-8 rounded-full"
+              alt="Profile"
+            />
+          </div>
+          <span className="font-semibold text-[15px] tracking-wide text-zinc-200">
+            555196111046
+          </span>
+        </div>
+        <div className="flex gap-3 w-full sm:w-auto">
+          <Button
+            onClick={handleReset}
+            className="bg-[#ef4444] hover:bg-[#dc2626] text-white rounded-lg px-5 h-10 font-bold border-none transition-colors w-full sm:w-auto"
+          >
+            Desconectar
+          </Button>
+          <Button
+            onClick={handleReset}
+            className="bg-[#eab308] hover:bg-[#ca8a04] text-zinc-950 rounded-lg px-5 h-10 font-bold border-none transition-colors w-full sm:w-auto"
+          >
+            Resetar
+          </Button>
+          <Button
+            onClick={handleSave}
+            className="bg-[#3b82f6] hover:bg-[#2563eb] text-white rounded-lg px-5 h-10 font-bold border-none transition-colors w-full sm:w-auto"
+          >
+            Salvar
+          </Button>
+        </div>
       </div>
     </div>
   )

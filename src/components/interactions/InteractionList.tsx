@@ -28,6 +28,7 @@ import { maskPhone } from '@/lib/formatters'
 import { Check, UserCircle, Search, AlertTriangle, Paperclip, ShieldAlert } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { ManualChatModal } from './ManualChatModal'
 
 export function InteractionList() {
   const {
@@ -104,6 +105,12 @@ export function InteractionList() {
             Atenção Humana
           </Badge>
         )
+      case 'em_atendimento_humano':
+        return (
+          <Badge className="bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 border-0">
+            Em Atendimento (Manual)
+          </Badge>
+        )
       case 'encerrado':
         return (
           <Badge className="bg-gray-500/15 text-gray-600 hover:bg-gray-500/25 border-0">
@@ -137,6 +144,7 @@ export function InteractionList() {
             <SelectItem value="cliente_identificado">Cliente Identificado</SelectItem>
             <SelectItem value="comprovante_recebido">Comprovante Recebido</SelectItem>
             <SelectItem value="aguardando_atendimento_humano">Atenção Humana</SelectItem>
+            <SelectItem value="em_atendimento_humano">Em Atendimento</SelectItem>
             <SelectItem value="renovacao_executada">Renovação Executada</SelectItem>
             <SelectItem value="encerrado">Encerrado</SelectItem>
           </SelectContent>
@@ -203,6 +211,8 @@ export function InteractionList() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
+                  <ManualChatModal interaction={int} />
+
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-8 gap-1">
@@ -275,14 +285,15 @@ export function InteractionList() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  {int.status === 'aguardando_atendimento_humano' && (
+
+                  {int.status === 'em_atendimento_humano' && (
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => updateInteractionStatus(int.id, 'encerrado')}
                       className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
                     >
-                      <Check className="h-4 w-4" /> Assumir / Encerrar
+                      <Check className="h-4 w-4" /> Encerrar
                     </Button>
                   )}
                 </TableCell>
