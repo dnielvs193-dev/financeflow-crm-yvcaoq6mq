@@ -16,11 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import useMainStore from '@/stores/useMainStore'
 import { Client, ClientStatus } from '@/types'
 import { Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { maskPhone } from '@/lib/formatters'
+import { PLANS } from '@/lib/plans'
 
 interface ClientFormModalProps {
   client?: Client
@@ -45,13 +47,18 @@ export function ClientFormModal({
   onOpenChange: setControlledOpen,
   trigger,
 }: ClientFormModalProps) {
-  const { addClient, updateClient, clients, inventory } = useMainStore()
+  const { addClient, updateClient, clients, inventory, currentPlan } = useMainStore()
   const { toast } = useToast()
   const [internalOpen, setInternalOpen] = useState(false)
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? setControlledOpen! : setInternalOpen
+
+  const activeClientsCount = clients.filter((c) => !c.deleted).length
+  const planConfig = PLANS[currentPlan]
+  const limitReached =
+    !client && planConfig.maxClients !== Infinity && activeClientsCount >= planConfig.maxClients
 
   const uniqueCities = Array.from(
     new Set(clients.map((c) => c.city).filter(Boolean)),
@@ -171,11 +178,26 @@ export function ClientFormModal({
       {trigger ? (
         <DialogTrigger asChild>{trigger}</DialogTrigger>
       ) : !isControlled ? (
-        <DialogTrigger asChild>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Cadastro
-          </Button>
-        </DialogTrigger>
+        limitReached ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={0} className="inline-block cursor-not-allowed">
+                <Button disabled className="gap-2 pointer-events-none opacity-50">
+                  <Plus className="h-4 w-4" /> Novo Cadastro
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Limite de clientes atingido. Faça upgrade do seu plano.</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" /> Novo Cadastro
+            </Button>
+          </DialogTrigger>
+        )
       ) : null}
       <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>

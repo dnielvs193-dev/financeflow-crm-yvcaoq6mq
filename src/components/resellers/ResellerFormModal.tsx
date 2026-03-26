@@ -16,16 +16,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Reseller, ResellerStatus } from '@/types'
 import useMainStore from '@/stores/useMainStore'
 import { useToast } from '@/hooks/use-toast'
 import { Edit, Plus } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
+import { PLANS } from '@/lib/plans'
 
 export function ResellerFormModal({ reseller }: { reseller?: Reseller }) {
-  const { addReseller, updateReseller } = useMainStore()
+  const { addReseller, updateReseller, resellers, currentPlan } = useMainStore()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
+
+  const planConfig = PLANS[currentPlan]
+  const limitReached =
+    !reseller && planConfig.maxResellers !== Infinity && resellers.length >= planConfig.maxResellers
 
   const [formData, setFormData] = useState({
     name: '',
@@ -79,17 +85,32 @@ export function ResellerFormModal({ reseller }: { reseller?: Reseller }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {reseller ? (
+      {reseller ? (
+        <DialogTrigger asChild>
           <Button variant="outline" className="gap-2">
             <Edit className="h-4 w-4" /> Editar
           </Button>
-        ) : (
+        </DialogTrigger>
+      ) : limitReached ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={0} className="inline-block cursor-not-allowed">
+              <Button disabled className="gap-2 pointer-events-none opacity-50">
+                <Plus className="h-4 w-4" /> Nova Revenda
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Limite de revendas atingido. Faça upgrade do plano.</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <DialogTrigger asChild>
           <Button className="gap-2">
             <Plus className="h-4 w-4" /> Nova Revenda
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{reseller ? 'Editar Revenda' : 'Cadastrar Revenda'}</DialogTitle>

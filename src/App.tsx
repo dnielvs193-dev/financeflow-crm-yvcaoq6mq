@@ -12,9 +12,12 @@ import Resellers from './pages/Resellers'
 import Payables from './pages/Payables'
 import Settings from './pages/Settings'
 import Interactions from './pages/Interactions'
+import Billing from './pages/Billing'
+import VoiceAssistant from './pages/VoiceAssistant'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { MainStoreProvider } from './stores/useMainStore'
+import { FeatureGate } from './components/FeatureGate'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -25,15 +28,59 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
+            <Route path="/billing" element={<Billing />} />
             <Route path="/clients" element={<Clients />} />
-            <Route path="/interactions" element={<Interactions />} />
             <Route path="/resellers" element={<Resellers />} />
-            <Route path="/finance" element={<Finance />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/banks" element={<Banks />} />
-            <Route path="/payables" element={<Payables />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/trash" element={<Trash />} />
+            <Route
+              path="/voice"
+              element={
+                <FeatureGate feature="voice">
+                  <VoiceAssistant />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="/interactions"
+              element={
+                <FeatureGate feature="ai_whatsapp">
+                  <Interactions />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="/finance"
+              element={
+                <FeatureGate feature="finance">
+                  <Finance />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="/inventory"
+              element={
+                <FeatureGate feature="inventory">
+                  <Inventory />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="/banks"
+              element={
+                <FeatureGate feature="banks">
+                  <Banks />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="/payables"
+              element={
+                <FeatureGate feature="payables">
+                  <Payables />
+                </FeatureGate>
+              }
+            />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

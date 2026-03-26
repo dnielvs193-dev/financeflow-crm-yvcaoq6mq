@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react'
 import {
+  PlanId,
   Client,
   Transaction,
   Bank,
@@ -36,6 +37,8 @@ export type ProcessTxPayload =
   | { action: 'reverse'; originalId: string }
 
 type MainStoreContextType = {
+  currentPlan: PlanId
+  setPlan: (plan: PlanId) => void
   clients: Client[]
   transactions: Transaction[]
   banks: Bank[]
@@ -139,6 +142,16 @@ const defaultTemplates: MessageTemplates = {
 }
 
 export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
+  const [currentPlan, setCurrentPlan] = useState<PlanId>(() => {
+    try {
+      const saved = localStorage.getItem('@financeflow:currentPlan')
+      if (saved) return saved as PlanId
+    } catch (e) {
+      console.error('Failed to parse plan from local storage', e)
+    }
+    return 'basic'
+  })
+
   const [clients, setClients] = useState<Client[]>(() => {
     try {
       const saved = localStorage.getItem('@financeflow:clients')
@@ -265,6 +278,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   })
 
   useEffect(() => {
+    localStorage.setItem('@financeflow:currentPlan', currentPlan)
+  }, [currentPlan])
+  useEffect(() => {
     localStorage.setItem('@financeflow:clients', JSON.stringify(clients))
   }, [clients])
   useEffect(() => {
@@ -318,6 +334,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   const [intStatusFilter, setIntStatusFilter] = useState('all')
 
   const [activePayables, setActivePayables] = useState(false)
+
+  const setPlan = (plan: PlanId) => setCurrentPlan(plan)
 
   const updateBankBalance = (bankId: string, amount: number) =>
     setBanks((prev) =>
@@ -1007,6 +1025,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
   return (
     <MainStoreContext.Provider
       value={{
+        currentPlan,
+        setPlan,
         clients,
         transactions,
         banks,

@@ -1,3 +1,5 @@
+export type PlanId = 'basic' | 'silver' | 'gold' | 'diamond'
+
 export type ClientStatus =
   | 'Devedor'
   | 'Vencido +30d'

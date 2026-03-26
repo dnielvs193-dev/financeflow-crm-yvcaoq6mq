@@ -1,21 +1,29 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Wallet, BotMessageSquare, MoreHorizontal } from 'lucide-react'
+import { LayoutDashboard, Users, Wallet, BotMessageSquare, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import useMainStore from '@/stores/useMainStore'
+import { PLANS, FeatureId } from '@/lib/plans'
 
 export function MobileNav() {
   const location = useLocation()
+  const { currentPlan } = useMainStore()
+  const planFeatures = PLANS[currentPlan].features
 
   const navItems = [
     { href: '/', label: 'Resumo', icon: LayoutDashboard },
     { href: '/clients', label: 'Clientes', icon: Users },
-    { href: '/interactions', label: 'IA Bot', icon: BotMessageSquare },
-    { href: '/finance', label: 'Extrato', icon: Wallet },
-    { href: '/banks', label: 'Mais', icon: MoreHorizontal },
+    { href: '/interactions', label: 'IA Bot', icon: BotMessageSquare, feature: 'ai_whatsapp' },
+    { href: '/finance', label: 'Extrato', icon: Wallet, feature: 'finance' },
+    { href: '/billing', label: 'Plano', icon: CreditCard },
   ]
+
+  const visibleItems = navItems.filter(
+    (item) => !item.feature || planFeatures.includes(item.feature as FeatureId),
+  )
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border flex items-center justify-around px-2 pb-safe pt-2 z-50">
-      {navItems.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = location.pathname === item.href
         return (
           <Link

@@ -7,15 +7,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useMainStore from '@/stores/useMainStore'
 import { useToast } from '@/hooks/use-toast'
-import { Save, Copy } from 'lucide-react'
+import { Save, Copy, Lock } from 'lucide-react'
 import { EvolutionApiTab } from '@/components/settings/EvolutionApiTab'
+import { PLANS } from '@/lib/plans'
+import { Link } from 'react-router-dom'
 
 export default function Settings() {
-  const { templates, updateTemplates, metaConfig, updateMetaConfig } = useMainStore()
+  const { templates, updateTemplates, metaConfig, updateMetaConfig, currentPlan } = useMainStore()
   const { toast } = useToast()
 
   const [formData, setFormData] = useState(templates)
   const [metaData, setMetaData] = useState(metaConfig)
+
+  const planFeatures = PLANS[currentPlan].features
+  const hasEvolution = planFeatures.includes('evolution_api')
+  const hasMeta = planFeatures.includes('ai_whatsapp')
 
   useEffect(() => {
     setFormData(templates)
@@ -50,22 +56,18 @@ export default function Settings() {
         </p>
       </div>
 
-      <Tabs defaultValue="evolution" className="w-full">
+      <Tabs defaultValue="templates" className="w-full">
         <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 max-w-[600px] h-auto">
           <TabsTrigger value="templates" className="py-2">
             Templates Padrão
           </TabsTrigger>
-          <TabsTrigger value="evolution" className="py-2">
-            Evolution API
+          <TabsTrigger value="evolution" className="py-2 flex gap-1 items-center">
+            Evolution API {!hasEvolution && <Lock className="h-3 w-3" />}
           </TabsTrigger>
-          <TabsTrigger value="meta" className="py-2">
-            Integração Meta
+          <TabsTrigger value="meta" className="py-2 flex gap-1 items-center">
+            Integração Meta {!hasMeta && <Lock className="h-3 w-3" />}
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="evolution" className="mt-4">
-          <EvolutionApiTab />
-        </TabsContent>
 
         <TabsContent value="templates" className="mt-4">
           <Card>
@@ -143,84 +145,116 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="evolution" className="mt-4">
+          {!hasEvolution ? (
+            <div className="p-8 text-center border rounded-lg bg-muted/30 border-dashed animate-fade-in-down mt-2">
+              <Lock className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Recurso Exclusivo (Plano Diamante)</h3>
+              <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                A conexão com o WhatsApp via Evolution API (QR Code) requer o plano Diamante. Faça o
+                upgrade para automatizar todo o seu atendimento.
+              </p>
+              <Button asChild>
+                <Link to="/billing">Ver Planos e Assinar</Link>
+              </Button>
+            </div>
+          ) : (
+            <EvolutionApiTab />
+          )}
+        </TabsContent>
+
         <TabsContent value="meta" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Integração Backend: Meta Cloud API</CardTitle>
-              <CardDescription>
-                Configure as credenciais do seu aplicativo na plataforma Meta para receber
-                interações reais do WhatsApp no número oficial de negócios.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Permanent Access Token</Label>
-                <Input
-                  type="password"
-                  value={metaData.accessToken}
-                  onChange={(e) => setMetaData({ ...metaData, accessToken: e.target.value })}
-                  placeholder="EAA..."
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {!hasMeta ? (
+            <div className="p-8 text-center border rounded-lg bg-muted/30 border-dashed animate-fade-in-down mt-2">
+              <Lock className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Recurso Bloqueado</h3>
+              <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                A integração oficial com a API da Meta está disponível em nossos planos superiores
+                de IA.
+              </p>
+              <Button asChild>
+                <Link to="/billing">Fazer Upgrade</Link>
+              </Button>
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Integração Backend: Meta Cloud API</CardTitle>
+                <CardDescription>
+                  Configure as credenciais do seu aplicativo na plataforma Meta para receber
+                  interações reais do WhatsApp no número oficial de negócios.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label>Phone Number ID</Label>
+                  <Label>Permanent Access Token</Label>
                   <Input
-                    value={metaData.phoneNumberId}
-                    onChange={(e) => setMetaData({ ...metaData, phoneNumberId: e.target.value })}
-                    placeholder="Ex: 104928471928"
+                    type="password"
+                    value={metaData.accessToken}
+                    onChange={(e) => setMetaData({ ...metaData, accessToken: e.target.value })}
+                    placeholder="EAA..."
                   />
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Phone Number ID</Label>
+                    <Input
+                      value={metaData.phoneNumberId}
+                      onChange={(e) => setMetaData({ ...metaData, phoneNumberId: e.target.value })}
+                      placeholder="Ex: 104928471928"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>WABA ID (WhatsApp Business Account)</Label>
+                    <Input
+                      value={metaData.wabaId}
+                      onChange={(e) => setMetaData({ ...metaData, wabaId: e.target.value })}
+                      placeholder="Ex: 192847102938"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label>WABA ID (WhatsApp Business Account)</Label>
+                  <Label>Verify Token (Para validação do Webhook)</Label>
                   <Input
-                    value={metaData.wabaId}
-                    onChange={(e) => setMetaData({ ...metaData, wabaId: e.target.value })}
-                    placeholder="Ex: 192847102938"
+                    value={metaData.verifyToken}
+                    onChange={(e) => setMetaData({ ...metaData, verifyToken: e.target.value })}
+                    placeholder="Token de verificação aleatório"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Verify Token (Para validação do Webhook)</Label>
-                <Input
-                  value={metaData.verifyToken}
-                  onChange={(e) => setMetaData({ ...metaData, verifyToken: e.target.value })}
-                  placeholder="Token de verificação aleatório"
-                />
-              </div>
+                <div className="pt-4 border-t border-border">
+                  <Label className="text-muted-foreground mb-2 block">
+                    Webhook Endpoint URL (Gerado)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value="https://financeflow-crm-da222.goskip.app/api/webhook"
+                      className="bg-muted font-mono text-sm"
+                    />
+                    <Button variant="outline" onClick={copyWebhook} title="Copiar URL">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Insira esta URL no painel de desenvolvedor da Meta para receber notificações em
+                    tempo real. O backend processará os eventos POST automaticamente para o CRM.
+                  </p>
+                </div>
 
-              <div className="pt-4 border-t border-border">
-                <Label className="text-muted-foreground mb-2 block">
-                  Webhook Endpoint URL (Gerado)
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    readOnly
-                    value="https://financeflow-crm-da222.goskip.app/api/webhook"
-                    className="bg-muted font-mono text-sm"
-                  />
-                  <Button variant="outline" onClick={copyWebhook} title="Copiar URL">
-                    <Copy className="h-4 w-4" />
+                <div className="pt-4 flex justify-end">
+                  <Button
+                    onClick={handleSaveMeta}
+                    className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Save className="h-4 w-4" /> Salvar Credenciais Seguras
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Insira esta URL no painel de desenvolvedor da Meta para receber notificações em
-                  tempo real. O backend processará os eventos POST automaticamente para o CRM.
-                </p>
-              </div>
-
-              <div className="pt-4 flex justify-end">
-                <Button
-                  onClick={handleSaveMeta}
-                  className="gap-2 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Save className="h-4 w-4" /> Salvar Credenciais Seguras
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -5,11 +5,15 @@ import { MobileNav } from './MobileNav'
 
 const routeTitles: Record<string, string> = {
   '/': 'Dashboard Overview',
+  '/billing': 'Assinaturas e Planos',
   '/clients': 'Módulo de Clientes',
   '/interactions': 'Atendimento Inteligente',
   '/resellers': 'Módulo de Revendas',
   '/finance': 'Módulo Financeiro',
   '/banks': 'Bancos e Contas',
+  '/inventory': 'Estoque & Serviços',
+  '/payables': 'Contas a Pagar',
+  '/voice': 'Assistente por Voz',
   '/settings': 'Configurações de Mensagens',
   '/trash': 'Lixeira',
 }
