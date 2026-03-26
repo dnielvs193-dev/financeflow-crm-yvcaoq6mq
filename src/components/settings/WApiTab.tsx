@@ -109,13 +109,37 @@ export function WApiTab() {
           </div>
         </div>
 
-        <div className="p-4 pb-3">
+        <div className="p-4 pb-3 border-b border-zinc-700/50">
           <label className="text-zinc-400 text-xs font-medium mb-1 block">Nome da instância</label>
           <input
             value={formData.instanceName}
             onChange={(e) => setFormData({ ...formData, instanceName: e.target.value })}
             className="bg-transparent w-full text-[15px] font-medium text-zinc-100 outline-none border-none p-0 focus:ring-0"
             placeholder="Nome interno"
+          />
+        </div>
+
+        <div className="p-4 pb-3 border-b border-zinc-700/50">
+          <label className="text-zinc-400 text-xs font-medium mb-1 block">
+            Chave PIX (Para IA de Vendas)
+          </label>
+          <input
+            value={formData.pixKey || ''}
+            onChange={(e) => setFormData({ ...formData, pixKey: e.target.value })}
+            className="bg-transparent w-full text-[15px] font-medium text-zinc-100 outline-none border-none p-0 focus:ring-0"
+            placeholder="Ex: 000.000.000-00 ou email@empresa.com"
+          />
+        </div>
+
+        <div className="p-4 pb-3">
+          <label className="text-zinc-400 text-xs font-medium mb-1 block">
+            Conhecimento Extra (Regras da IA)
+          </label>
+          <textarea
+            value={formData.extraKnowledge || ''}
+            onChange={(e) => setFormData({ ...formData, extraKnowledge: e.target.value })}
+            className="bg-transparent w-full text-[15px] font-medium text-zinc-100 outline-none border-none p-0 focus:ring-0 min-h-[60px] resize-none"
+            placeholder="Descreva regras de negócio, horários, promoções, etc."
           />
         </div>
       </div>

@@ -19,7 +19,7 @@ import {
   ReceiptStatus,
   AuditLog,
 } from '@/types'
-import { getClientStatus, cleanPhone } from '@/lib/formatters'
+import { getClientStatus, cleanPhone, formatDate } from '@/lib/formatters'
 import {
   mockClients,
   mockBanks,
@@ -267,6 +267,9 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       instanceId: 'LITE-D8WI1J-39WIQX',
       instanceToken: '75xqmYuG0yvZsejTUu9GhcLTMCz0kda0s',
       instanceName: 'SKIP',
+      pixKey: '12.345.678/0001-90',
+      extraKnowledge:
+        'Nosso horário de atendimento é das 08h às 18h. Para assinaturas anuais, oferecemos 10% de desconto.',
     }
   })
 
@@ -679,6 +682,8 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       instanceId: '',
       instanceToken: '',
       instanceName: '',
+      pixKey: '',
+      extraKnowledge: '',
     })
 
   const generateEvolutionQr = () => {
@@ -724,10 +729,16 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       )
     })
 
+    const isDiamond = currentPlan === 'diamond'
+
     let intent: InteractionIntent = 'dúvidas gerais'
     let confidence = 0.85
     let status: InteractionStatus = clientMatch ? 'cliente_identificado' : 'novo_contato'
     const textLower = text.toLowerCase()
+
+    let aiResponse = ''
+    let isTroubleshooting = false
+    let autoRenewed = false
 
     if (
       textLower.includes('humano') ||
@@ -737,6 +748,7 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
       intent = 'solicitar suporte humano'
       status = 'aguardando_atendimento_humano'
       confidence = 0.95
+      aiResponse = 'Transferindo para um atendente humano. Aguarde um momento.'
     } else if (
       hasMedia ||
       textLower.includes('comprovante') ||
@@ -745,19 +757,88 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
     ) {
       intent = 'enviar comprovante'
       status = 'comprovante_recebido'
+      if (isDiamond && hasMedia && clientMatch) {
+        autoRenewed = true
+        status = 'renovacao_executada'
+      }
+    } else if (
+      textLower.includes('travando') ||
+      textLower.includes('travamento') ||
+      textLower.includes('fora do ar') ||
+      textLower.includes('lenta')
+    ) {
+      intent = 'suporte técnico'
+      if (isDiamond) {
+        aiResponse = 'Certo, já estou verificando a sua conexão.'
+        isTroubleshooting = true
+      }
     } else if (
       textLower.includes('vencimento') ||
       textLower.includes('vence') ||
-      textLower.includes('dias faltam')
+      textLower.includes('dias faltam') ||
+      textLower.includes('quando vence')
     ) {
       intent = 'solicitar informações sobre vencimento'
-    } else if (textLower.includes('renovar') || textLower.includes('renovacao')) {
-      intent = 'pedir confirmação de renovação'
-    } else if (textLower.includes('status') || textLower.includes('pago')) {
-      intent = 'consultar status do pagamento'
+      if (isDiamond) {
+        aiResponse = clientMatch
+          ? `Seu plano vence em ${formatDate(clientMatch.expiryDate)}.`
+          : 'Não encontrei seu cadastro. Por favor, informe seu usuário ou nome completo.'
+      }
+    } else if (
+      textLower.includes('usuário') ||
+      textLower.includes('usuario') ||
+      textLower.includes('senha') ||
+      textLower.includes('dados')
+    ) {
+      intent = 'consultar dados'
+      if (isDiamond) {
+        aiResponse = clientMatch
+          ? `Aqui estão seus dados de acesso:\n*Usuário:* ${clientMatch.user || 'Não definido'}\n*Senha:* ${clientMatch.password || 'Não definida'}`
+          : 'Não encontrei seu cadastro para informar os dados de acesso.'
+      }
+    } else if (
+      textLower.includes('preço') ||
+      textLower.includes('valor') ||
+      textLower.includes('comprar') ||
+      textLower.includes('pagar') ||
+      textLower.includes('pagamento') ||
+      textLower.includes('planos')
+    ) {
+      intent = 'vendas e financeiro'
+      if (isDiamond) {
+        const prices = inventory
+          .filter((i) => i.category === 'Revenda' || i.category === 'Serviço Recorrente')
+          .map((i) => `- ${i.name}: R$ ${i.unitCost.toFixed(2)}`)
+          .join('\n')
+        const pix = wApiConfig.pixKey || 'Não configurada'
+        aiResponse = `Nossos serviços disponíveis:\n${prices}\n\nPara pagar, utilize nossa chave PIX: ${pix}`
+      }
+    } else if (
+      textLower.includes('oi') ||
+      textLower.includes('ola') ||
+      textLower.includes('olá') ||
+      textLower.includes('boa tarde') ||
+      textLower.includes('bom dia')
+    ) {
+      intent = 'dúvidas gerais'
+      if (isDiamond) {
+        aiResponse = clientMatch
+          ? `Boa tarde, ${clientMatch.name}, no que podemos ajudar?`
+          : 'Olá! Sou o assistente virtual. Como posso ajudar você hoje?'
+      }
+    } else {
+      if (isDiamond && wApiConfig.extraKnowledge && textLower.length > 5) {
+        intent = 'dúvidas gerais'
+        aiResponse = `De acordo com nossa base: ${wApiConfig.extraKnowledge}`
+      }
     }
 
-    if (!clientMatch && status !== 'aguardando_atendimento_humano' && status !== 'novo_contato') {
+    if (
+      !clientMatch &&
+      status !== 'aguardando_atendimento_humano' &&
+      status !== 'novo_contato' &&
+      !autoRenewed
+    ) {
       confidence = 0.4
       status = 'aguardando_atendimento_humano'
     }
@@ -789,23 +870,50 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
     if (intent === 'enviar comprovante' && hasMedia) {
       receiptId = Math.random().toString(36).substr(2, 9)
+
+      let recStatus: ReceiptStatus = autoRenewed ? 'pagamento_validado' : 'comprovante_recebido'
+      let recNotes = autoRenewed
+        ? 'Auto-renovado +30d e lançamento gerado no financeiro (IA).'
+        : undefined
+
       const newReceipt: Receipt = {
         id: receiptId,
         clientId: clientMatch?.id,
         phone: cleanedPhone,
         timestamp: new Date().toISOString(),
         fileAttachment: 'https://img.usecurling.com/p/400/600?q=receipt&color=gray',
-        status: 'comprovante_recebido',
+        status: recStatus,
+        notes: recNotes,
       }
       setReceipts((prev) => [newReceipt, ...prev])
-      auditLogs.push({
-        id: Math.random().toString(36).substr(2, 9),
-        timestamp: new Date().toISOString(),
-        action: 'Comprovante Identificado e Extraído',
-        actor: 'System',
-        correlationId,
-        details: `Mídia recebida (OCR simulado). Extração de dados vinculada ao financeiro do CRM.`,
-      })
+
+      if (autoRenewed && clientMatch) {
+        renewClient(clientMatch.id, 30)
+        let newExp = new Date(clientMatch.expiryDate)
+        const curStatus = getClientStatus(clientMatch.expiryDate, clientMatch.status)
+        if (['Vencido', 'Vencido +30d'].includes(curStatus || '')) newExp = new Date()
+        newExp.setDate(newExp.getDate() + 30)
+
+        aiResponse = `Recebi seu comprovante e já renovei seu acesso até ${formatDate(newExp.toISOString())}, obrigado!`
+
+        auditLogs.push({
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: new Date().toISOString(),
+          action: 'Renovação Executada',
+          actor: 'AI',
+          correlationId,
+          details: `Comprovante analisado via OCR. Cliente ${clientMatch.name} renovado +30d automaticamente.`,
+        })
+      } else {
+        auditLogs.push({
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: new Date().toISOString(),
+          action: 'Comprovante Extraído',
+          actor: 'System',
+          correlationId,
+          details: `Mídia recebida. Aguardando validação manual ou regras falharam.`,
+        })
+      }
     }
 
     if (!clientMatch) {
@@ -815,7 +923,18 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
         action: 'Cliente Não Identificado',
         actor: 'System',
         correlationId,
-        details: `Número não encontrado na base. Solicitado dados adicionais (Nome/CPF).`,
+        details: `Número não encontrado na base. Solicitado dados adicionais.`,
+      })
+    }
+
+    if (aiResponse) {
+      auditLogs.push({
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+        action: 'Resposta Enviada (IA)',
+        actor: 'AI',
+        correlationId,
+        details: aiResponse,
       })
     }
 
@@ -840,6 +959,33 @@ export const MainStoreProvider = ({ children }: { children: ReactNode }) => {
 
     if (clientMatch) {
       updateClient(clientMatch.id, { lastContactedDate: new Date().toISOString() })
+    }
+
+    if (isTroubleshooting) {
+      setTimeout(() => {
+        setInteractions((prev) =>
+          prev.map((i) => {
+            if (i.id === interactionId) {
+              return {
+                ...i,
+                auditLogs: [
+                  ...(i.auditLogs || []),
+                  {
+                    id: Math.random().toString(36).substr(2, 9),
+                    timestamp: new Date().toISOString(),
+                    action: 'Follow-up Enviado (IA)',
+                    actor: 'AI',
+                    correlationId,
+                    details:
+                      'Fizemos uma atualização, só precisamos que tire o modem da tomada e a TV também, me retorne se deu certo.',
+                  },
+                ],
+              }
+            }
+            return i
+          }),
+        )
+      }, 3000)
     }
   }
 

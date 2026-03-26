@@ -156,6 +156,8 @@ export type WApiConfig = {
   instanceId: string
   instanceToken: string
   instanceName: string
+  pixKey?: string
+  extraKnowledge?: string
 }
 
 export type InteractionIntent =
@@ -167,6 +169,9 @@ export type InteractionIntent =
   | 'pedir confirmação de renovação'
   | 'solicitar suporte humano'
   | 'dúvidas gerais'
+  | 'suporte técnico'
+  | 'vendas e financeiro'
+  | 'consultar dados'
 
 export type InteractionStatus =
   | 'novo_contato'
