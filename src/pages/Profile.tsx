@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Camera, Lock, User as UserIcon } from 'lucide-react'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 
 export default function Profile() {
   const { user } = useAuth()
@@ -43,7 +44,13 @@ export default function Profile() {
         description: 'Suas informações foram salvas com sucesso.',
       })
     } catch (err: any) {
-      toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' })
+      const fieldErrors = extractFieldErrors(err)
+      const errorMsg = fieldErrors.name || fieldErrors.avatar || getErrorMessage(err)
+      toast({
+        title: 'Erro ao atualizar',
+        description: errorMsg || err.message,
+        variant: 'destructive',
+      })
     } finally {
       setIsUpdatingProfile(false)
     }
@@ -82,9 +89,11 @@ export default function Profile() {
       setNewPassword('')
       setConfirmPassword('')
     } catch (err: any) {
+      const fieldErrors = extractFieldErrors(err)
+      const errorMsg = fieldErrors.oldPassword || fieldErrors.password || getErrorMessage(err)
       toast({
         title: 'Erro ao alterar senha',
-        description: 'Verifique se a senha atual está correta.',
+        description: errorMsg || 'Verifique se a senha atual está correta.',
         variant: 'destructive',
       })
     } finally {

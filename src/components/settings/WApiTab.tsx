@@ -7,6 +7,7 @@ import { Eye, EyeOff, RefreshCcw, MoreVertical, Copy, ShieldAlert } from 'lucide
 import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export function WApiTab() {
   const { toast } = useToast()
@@ -22,6 +23,19 @@ export function WApiTab() {
         setTempData({
           api_key: records[0].api_key || '',
           webhook_secret: records[0].webhook_secret || '',
+        })
+      } else {
+        const newRecord = await pb.collection('app_settings').create({
+          wapi_active: false,
+          api_key:
+            Math.random().toString(36).substring(2, 15) +
+            Math.random().toString(36).substring(2, 15),
+          webhook_secret: '',
+        })
+        setSettings(newRecord)
+        setTempData({
+          api_key: newRecord.api_key || '',
+          webhook_secret: newRecord.webhook_secret || '',
         })
       }
     } catch (e) {
@@ -54,12 +68,20 @@ export function WApiTab() {
 
   const handleToggle = async (checked: boolean) => {
     if (settings) {
+      setSettings((prev: any) => ({ ...prev, wapi_active: checked }))
       try {
         await pb.collection('app_settings').update(settings.id, { wapi_active: checked })
         toast({ title: checked ? 'Conexão W-API Ativada' : 'Conexão W-API Desativada' })
-      } catch (err) {
-        toast({ title: 'Erro ao alterar status', variant: 'destructive' })
+      } catch (err: any) {
+        setSettings((prev: any) => ({ ...prev, wapi_active: !checked }))
+        toast({
+          title: 'Erro ao alterar status',
+          description: getErrorMessage(err),
+          variant: 'destructive',
+        })
       }
+    } else {
+      toast({ title: 'Configurações não carregadas', variant: 'destructive' })
     }
   }
 
@@ -72,8 +94,12 @@ export function WApiTab() {
       try {
         await pb.collection('app_settings').update(settings.id, tempData)
         toast({ title: 'Configurações W-API salvas com sucesso!' })
-      } catch (err) {
-        toast({ title: 'Erro ao salvar', variant: 'destructive' })
+      } catch (err: any) {
+        toast({
+          title: 'Erro ao salvar',
+          description: getErrorMessage(err),
+          variant: 'destructive',
+        })
       }
     }
   }

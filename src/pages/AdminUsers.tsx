@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([])
@@ -62,6 +64,10 @@ export default function AdminUsers() {
     loadUsers()
   }, [])
 
+  useRealtime('users', () => {
+    loadUsers()
+  })
+
   const filteredUsers = users.filter(
     (u) =>
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -89,11 +95,12 @@ export default function AdminUsers() {
       setIsOpen(false)
       setNewEmail('')
       setNewRole('user')
-      loadUsers()
     } catch (err: any) {
+      const fieldErrors = extractFieldErrors(err)
+      const errorMsg = fieldErrors.email || fieldErrors.password || getErrorMessage(err)
       toast({
-        title: 'Erro ao criar',
-        description: err.message || 'Erro desconhecido',
+        title: 'Erro ao criar usuário',
+        description: errorMsg || 'Erro desconhecido',
         variant: 'destructive',
       })
     } finally {
