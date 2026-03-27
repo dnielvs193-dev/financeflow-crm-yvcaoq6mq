@@ -17,6 +17,9 @@ export function WApiTab() {
   const [isSaving, setIsSaving] = useState(false)
   const [tempData, setTempData] = useState({ api_key: '', webhook_secret: '' })
 
+  const generateApiKey = () =>
+    Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+
   const loadSettings = async () => {
     try {
       setIsLoading(true)
@@ -28,24 +31,17 @@ export function WApiTab() {
       })
     } catch (e: any) {
       if (e.status === 404) {
-        try {
-          const newRecord = await pb.collection('app_settings').create({
-            wapi_active: false,
-            api_key:
-              Math.random().toString(36).substring(2, 15) +
-              Math.random().toString(36).substring(2, 15),
-            webhook_secret: '',
-          })
-          setSettings(newRecord)
-          setTempData({
-            api_key: newRecord.api_key || '',
-            webhook_secret: newRecord.webhook_secret || '',
-          })
-        } catch (createErr) {
-          console.error('Failed to create app_settings:', createErr)
-        }
+        setSettings(null)
+        setTempData({
+          api_key: generateApiKey(),
+          webhook_secret: '',
+        })
       } else {
-        console.error('Failed to load app_settings:', e)
+        toast({
+          title: 'Erro ao carregar configurações',
+          description: getErrorMessage(e),
+          variant: 'destructive',
+        })
       }
     } finally {
       setIsLoading(false)
@@ -84,13 +80,19 @@ export function WApiTab() {
   const handleToggle = async (checked: boolean) => {
     try {
       setIsSaving(true)
-      if (!settings?.id) {
-        throw new Error('Configurações não carregadas.')
+      if (settings?.id) {
+        const updated = await pb.collection('app_settings').update(settings.id, {
+          wapi_active: checked,
+        })
+        setSettings(updated)
+      } else {
+        const newRecord = await pb.collection('app_settings').create({
+          wapi_active: checked,
+          api_key: tempData.api_key || generateApiKey(),
+          webhook_secret: tempData.webhook_secret || '',
+        })
+        setSettings(newRecord)
       }
-      const updated = await pb.collection('app_settings').update(settings.id, {
-        wapi_active: checked,
-      })
-      setSettings(updated)
       toast({ title: checked ? 'Conexão W-API Ativada' : 'Conexão W-API Desativada' })
     } catch (err: any) {
       toast({
@@ -110,19 +112,30 @@ export function WApiTab() {
     }
     try {
       setIsSaving(true)
-      if (!settings?.id) {
-        throw new Error('Configurações não carregadas.')
+      if (settings?.id) {
+        const updated = await pb.collection('app_settings').update(settings.id, {
+          api_key: tempData.api_key,
+          webhook_secret: tempData.webhook_secret || '',
+        })
+        setSettings(updated)
+        setTempData({
+          api_key: updated.api_key || '',
+          webhook_secret: updated.webhook_secret || '',
+        })
+        toast({ title: 'Configurações W-API salvas com sucesso!' })
+      } else {
+        const newRecord = await pb.collection('app_settings').create({
+          wapi_active: false,
+          api_key: tempData.api_key,
+          webhook_secret: tempData.webhook_secret || '',
+        })
+        setSettings(newRecord)
+        setTempData({
+          api_key: newRecord.api_key || '',
+          webhook_secret: newRecord.webhook_secret || '',
+        })
+        toast({ title: 'Configurações W-API criadas com sucesso!' })
       }
-      const updated = await pb.collection('app_settings').update(settings.id, {
-        api_key: tempData.api_key,
-        webhook_secret: tempData.webhook_secret || '',
-      })
-      setSettings(updated)
-      setTempData({
-        api_key: updated.api_key || '',
-        webhook_secret: updated.webhook_secret || '',
-      })
-      toast({ title: 'Configurações W-API salvas com sucesso!' })
     } catch (err: any) {
       toast({
         title: 'Erro ao salvar',
@@ -137,8 +150,7 @@ export function WApiTab() {
   const handleRefresh = () => {
     setTempData({
       ...tempData,
-      api_key:
-        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      api_key: generateApiKey(),
     })
     toast({
       title: 'Nova API Key gerada temporariamente.',
