@@ -31,11 +31,33 @@ export function WApiTab() {
       })
     } catch (e: any) {
       if (e.status === 404) {
-        setSettings(null)
-        setTempData({
-          api_key: generateApiKey(),
-          webhook_secret: '',
-        })
+        try {
+          const newRecord = await pb.collection('app_settings').create({
+            wapi_active: false,
+            api_key: generateApiKey(),
+            webhook_secret: '',
+          })
+          setSettings(newRecord)
+          setTempData({
+            api_key: newRecord.api_key || '',
+            webhook_secret: newRecord.webhook_secret || '',
+          })
+        } catch (createErr: any) {
+          try {
+            const existingRecord = await pb.collection('app_settings').getFirstListItem('')
+            setSettings(existingRecord)
+            setTempData({
+              api_key: existingRecord.api_key || '',
+              webhook_secret: existingRecord.webhook_secret || '',
+            })
+          } catch (fetchErr: any) {
+            toast({
+              title: 'Erro ao carregar configurações',
+              description: getErrorMessage(fetchErr),
+              variant: 'destructive',
+            })
+          }
+        }
       } else {
         toast({
           title: 'Erro ao carregar configurações',
@@ -78,21 +100,17 @@ export function WApiTab() {
   }
 
   const handleToggle = async (checked: boolean) => {
+    if (!settings?.id) {
+      toast({ title: 'Configuração não encontrada', variant: 'destructive' })
+      return
+    }
+
     try {
       setIsSaving(true)
-      if (settings?.id) {
-        const updated = await pb.collection('app_settings').update(settings.id, {
-          wapi_active: checked,
-        })
-        setSettings(updated)
-      } else {
-        const newRecord = await pb.collection('app_settings').create({
-          wapi_active: checked,
-          api_key: tempData.api_key || generateApiKey(),
-          webhook_secret: tempData.webhook_secret || '',
-        })
-        setSettings(newRecord)
-      }
+      const updated = await pb.collection('app_settings').update(settings.id, {
+        wapi_active: checked,
+      })
+      setSettings(updated)
       toast({ title: checked ? 'Conexão W-API Ativada' : 'Conexão W-API Desativada' })
     } catch (err: any) {
       toast({
@@ -110,32 +128,24 @@ export function WApiTab() {
       toast({ title: 'A API Key é obrigatória.', variant: 'destructive' })
       return
     }
+
+    if (!settings?.id) {
+      toast({ title: 'Configuração não encontrada.', variant: 'destructive' })
+      return
+    }
+
     try {
       setIsSaving(true)
-      if (settings?.id) {
-        const updated = await pb.collection('app_settings').update(settings.id, {
-          api_key: tempData.api_key,
-          webhook_secret: tempData.webhook_secret || '',
-        })
-        setSettings(updated)
-        setTempData({
-          api_key: updated.api_key || '',
-          webhook_secret: updated.webhook_secret || '',
-        })
-        toast({ title: 'Configurações W-API salvas com sucesso!' })
-      } else {
-        const newRecord = await pb.collection('app_settings').create({
-          wapi_active: false,
-          api_key: tempData.api_key,
-          webhook_secret: tempData.webhook_secret || '',
-        })
-        setSettings(newRecord)
-        setTempData({
-          api_key: newRecord.api_key || '',
-          webhook_secret: newRecord.webhook_secret || '',
-        })
-        toast({ title: 'Configurações W-API criadas com sucesso!' })
-      }
+      const updated = await pb.collection('app_settings').update(settings.id, {
+        api_key: tempData.api_key,
+        webhook_secret: tempData.webhook_secret || '',
+      })
+      setSettings(updated)
+      setTempData({
+        api_key: updated.api_key || '',
+        webhook_secret: updated.webhook_secret || '',
+      })
+      toast({ title: 'Configurações W-API salvas com sucesso!' })
     } catch (err: any) {
       toast({
         title: 'Erro ao salvar',
