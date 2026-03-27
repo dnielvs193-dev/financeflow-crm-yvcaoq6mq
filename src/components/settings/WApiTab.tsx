@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
-import { Eye, EyeOff, RefreshCcw, Copy, ShieldAlert, Loader2, Plug, Unplug } from 'lucide-react'
+import { Eye, EyeOff, RefreshCcw, Copy, ShieldAlert, Loader2, Plug, Unplug, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -16,6 +16,7 @@ export function WApiTab() {
   const { toast } = useToast()
   const [settings, setSettings] = useState<any>(null)
   const [apiKeyInput, setApiKeyInput] = useState('')
+  const [instanceIdInput, setInstanceIdInput] = useState('')
   const [showToken, setShowToken] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -26,22 +27,21 @@ export function WApiTab() {
   const loadSettings = async () => {
     try {
       setIsLoading(true)
-      let record
-      try {
-        record = await pb.collection('app_settings').getFirstListItem('')
-      } catch (e: any) {
-        if (e.status === 404) {
-          record = await pb.collection('app_settings').create({
-            wapi_active: false,
-            api_key: 'default_key_change_me',
-            webhook_secret: generateApiKey(),
-          })
-        } else {
-          throw e
-        }
+      const records = await pb.collection('app_settings').getFullList()
+      let record = records.length > 0 ? records[0] : null
+
+      if (!record) {
+        record = await pb.collection('app_settings').create({
+          wapi_active: false,
+          api_key: '',
+          instance_id: '',
+          webhook_secret: generateApiKey(),
+        })
       }
+
       setSettings(record)
       setApiKeyInput(record.api_key || '')
+      setInstanceIdInput(record.instance_id || '')
     } catch (e: any) {
       setSettings(null)
       toast({
@@ -63,6 +63,7 @@ export function WApiTab() {
     if (pb.authStore.isValid && (e.action === 'update' || e.action === 'create')) {
       setSettings(e.record)
       setApiKeyInput(e.record.api_key || '')
+      setInstanceIdInput(e.record.instance_id || '')
     }
   })
 
@@ -100,13 +101,17 @@ export function WApiTab() {
   }
 
   const handleConnect = async () => {
-    if (!apiKeyInput.trim()) return
+    if (!apiKeyInput.trim() || !instanceIdInput.trim()) {
+      toast({ title: 'Preencha todos os campos requeridos.', variant: 'destructive' })
+      return
+    }
     if (!settings?.id) return
 
     try {
       setIsSaving(true)
       const updated = await pb.collection('app_settings').update(settings.id, {
         api_key: apiKeyInput.trim(),
+        instance_id: instanceIdInput.trim(),
         wapi_active: true,
       })
       setSettings(updated)
@@ -155,7 +160,7 @@ export function WApiTab() {
             <CardTitle>W-API (WhatsApp API)</CardTitle>
             <CardDescription>
               Configure sua conexão direta com instâncias da W-API para envio e recebimento de
-              mensagens.
+              mensagens de forma inteligente.
             </CardDescription>
           </div>
           <Badge
@@ -169,42 +174,60 @@ export function WApiTab() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label>API Key (Requerida)</Label>
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Input
-                type={showToken ? 'text' : 'password'}
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                disabled={isFormDisabled}
-                placeholder="Sua API Key..."
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                onClick={() => setShowToken(!showToken)}
-              >
-                {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => setApiKeyInput(generateApiKey())}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Instance ID (Requerido)</Label>
+            <Input
+              type="text"
+              value={instanceIdInput}
+              onChange={(e) => setInstanceIdInput(e.target.value)}
               disabled={isFormDisabled}
-              title="Gerar nova chave"
-            >
-              <RefreshCcw className="h-4 w-4" />
-            </Button>
+              placeholder="Ex: LITE-D8WI1J-39WIQX"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>API Key / Token (Requerido)</Label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type={showToken ? 'text' : 'password'}
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  disabled={isFormDisabled}
+                  placeholder="Ex: ynh5eSS14M2UpoDHDO6LpYd4UBnfKHmKF"
+                  className="pr-20"
+                />
+                <div className="absolute right-0 top-0 h-full flex items-center">
+                  {!isFormDisabled && apiKeyInput && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-full px-2 hover:bg-transparent text-muted-foreground hover:text-destructive"
+                      onClick={() => setApiKeyInput('')}
+                      title="Limpar Token"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-full px-3 hover:bg-transparent text-muted-foreground"
+                    onClick={() => setShowToken(!showToken)}
+                    title={showToken ? 'Ocultar' : 'Mostrar'}
+                  >
+                    {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 pt-4 border-t border-border">
           <Label>Webhook Secret (Validação de Payload)</Label>
           <div className="flex items-center gap-2">
             <Input readOnly value={settings?.webhook_secret || ''} className="bg-muted font-mono" />
@@ -219,6 +242,22 @@ export function WApiTab() {
               title="Copiar Secret"
             >
               <Copy className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={async () => {
+                if (!settings?.id) return
+                const newSecret = generateApiKey()
+                await pb
+                  .collection('app_settings')
+                  .update(settings.id, { webhook_secret: newSecret })
+                toast({ title: 'Novo Webhook Secret gerado!' })
+              }}
+              title="Gerar novo secret"
+            >
+              <RefreshCcw className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -242,7 +281,8 @@ export function WApiTab() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Configure esta URL no painel da W-API para receber os eventos via POST.
+            Configure esta URL no painel da W-API para receber os eventos via POST. Certifique-se de
+            incluir o Webhook Secret no Header ou no corpo da requisição.
           </p>
         </div>
 
@@ -264,7 +304,7 @@ export function WApiTab() {
           ) : (
             <Button
               onClick={handleConnect}
-              disabled={isSaving || !apiKeyInput.trim()}
+              disabled={isSaving || !apiKeyInput.trim() || !instanceIdInput.trim()}
               className="gap-2 w-full sm:w-auto"
             >
               {isSaving ? (

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,19 @@ export function SimulatorModal() {
   const [open, setOpen] = useState(false)
   const [phone, setPhone] = useState('5551999999991')
   const [senderLid, setSenderLid] = useState('')
-  const [message, setMessage] = useState('Boa tarde')
+  const [message, setMessage] = useState('Boa tarde, quero pagar via PIX')
+  const [secret, setSecret] = useState('')
+
+  useEffect(() => {
+    if (open) {
+      pb.collection('app_settings')
+        .getFullList()
+        .then((res) => {
+          if (res.length > 0) setSecret(res[0].webhook_secret || '')
+        })
+        .catch(() => {})
+    }
+  }, [open])
 
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,25 +43,26 @@ export function SimulatorModal() {
           senderLid,
           text: message,
           senderName: 'Simulador Teste',
+          secret: secret,
         },
       })
       if (res.ignored) {
         toast({
           title: 'Webhook Ignorado',
-          description: 'A integração W-API está desativada nas configurações.',
+          description: res.reason || 'A integração W-API está desativada nas configurações.',
           variant: 'destructive',
         })
       } else {
         toast({
           title: 'Webhook Simulado',
-          description: 'Mensagem recebida e gravada na base de dados.',
+          description: 'Mensagem recebida e classificada com sucesso.',
         })
         setOpen(false)
       }
     } catch (err: any) {
       toast({
         title: 'Erro',
-        description: err?.message || 'Falha ao disparar webhook.',
+        description: err?.message || 'Falha ao disparar webhook. Verifique as configurações.',
         variant: 'destructive',
       })
     }
@@ -59,14 +72,15 @@ export function SimulatorModal() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2 border-primary/50 hover:bg-primary/10">
-          <Play className="h-4 w-4 text-primary" /> Simular Webhook (W-API)
+          <Play className="h-4 w-4 text-primary" /> Simular Webhook
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Disparar Webhook de Teste</DialogTitle>
           <DialogDescription>
-            Simule o recebimento de mensagens enviando um payload direto para o hook do PocketBase.
+            Simule o recebimento de mensagens enviando um payload direto para o hook de
+            processamento inteligente.
           </DialogDescription>
         </DialogHeader>
 
@@ -88,6 +102,10 @@ export function SimulatorModal() {
           <div className="space-y-2">
             <Label>Mensagem</Label>
             <Input required value={message} onChange={(e) => setMessage(e.target.value)} />
+            <p className="text-xs text-muted-foreground">
+              Dica: Digite palavras como "PIX", "ajuda", "vencimento" para ver a classificação de
+              intenção do bot.
+            </p>
           </div>
 
           <div className="flex justify-end pt-4">
