@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Eye, EyeOff, RefreshCcw, MoreVertical, Copy, ShieldAlert } from 'lucide-react'
+import { Eye, EyeOff, RefreshCcw, MoreVertical, Copy, ShieldAlert, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -13,44 +13,59 @@ export function WApiTab() {
   const { toast } = useToast()
   const [settings, setSettings] = useState<any>(null)
   const [showToken, setShowToken] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [tempData, setTempData] = useState({ api_key: '', webhook_secret: '' })
 
   const loadSettings = async () => {
     try {
-      const records = await pb.collection('app_settings').getFullList()
-      if (records.length > 0) {
-        setSettings(records[0])
-        setTempData({
-          api_key: records[0].api_key || '',
-          webhook_secret: records[0].webhook_secret || '',
-        })
+      setIsLoading(true)
+      const record = await pb.collection('app_settings').getFirstListItem('')
+      setSettings(record)
+      setTempData({
+        api_key: record.api_key || '',
+        webhook_secret: record.webhook_secret || '',
+      })
+    } catch (e: any) {
+      if (e.status === 404) {
+        try {
+          const newRecord = await pb.collection('app_settings').create({
+            wapi_active: false,
+            api_key:
+              Math.random().toString(36).substring(2, 15) +
+              Math.random().toString(36).substring(2, 15),
+            webhook_secret: '',
+          })
+          setSettings(newRecord)
+          setTempData({
+            api_key: newRecord.api_key || '',
+            webhook_secret: newRecord.webhook_secret || '',
+          })
+        } catch (createErr) {
+          console.error('Failed to create app_settings:', createErr)
+        }
       } else {
-        const newRecord = await pb.collection('app_settings').create({
-          wapi_active: false,
-          api_key:
-            Math.random().toString(36).substring(2, 15) +
-            Math.random().toString(36).substring(2, 15),
-          webhook_secret: '',
-        })
-        setSettings(newRecord)
-        setTempData({
-          api_key: newRecord.api_key || '',
-          webhook_secret: newRecord.webhook_secret || '',
-        })
+        console.error('Failed to load app_settings:', e)
       }
-    } catch (e) {
-      console.error('Failed to load app_settings:', e)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   useEffect(() => {
     if (pb.authStore.isValid) {
       loadSettings()
+    } else {
+      setIsLoading(false)
     }
   }, [])
 
-  useRealtime('app_settings', () => {
-    if (pb.authStore.isValid) loadSettings()
+  useRealtime('app_settings', (e) => {
+    if (pb.authStore.isValid) {
+      if (e.action === 'update' || e.action === 'create') {
+        setSettings(e.record)
+      }
+    }
   })
 
   if (!pb.authStore.isValid) {
@@ -68,25 +83,14 @@ export function WApiTab() {
 
   const handleToggle = async (checked: boolean) => {
     try {
-      let currentSettings = settings
-      if (!currentSettings) {
-        const records = await pb.collection('app_settings').getFullList()
-        if (records.length > 0) {
-          currentSettings = records[0]
-        } else {
-          currentSettings = await pb.collection('app_settings').create({
-            wapi_active: checked,
-            api_key: tempData.api_key || Math.random().toString(36).substring(2, 15),
-            webhook_secret: tempData.webhook_secret || '',
-          })
-          setSettings(currentSettings)
-          toast({ title: checked ? 'Conexão W-API Ativada' : 'Conexão W-API Desativada' })
-          return
-        }
+      setIsSaving(true)
+      if (!settings?.id) {
+        throw new Error('Configurações não carregadas.')
       }
-
-      await pb.collection('app_settings').update(currentSettings.id, { wapi_active: checked })
-      setSettings((prev: any) => ({ ...prev, wapi_active: checked }))
+      const updated = await pb.collection('app_settings').update(settings.id, {
+        wapi_active: checked,
+      })
+      setSettings(updated)
       toast({ title: checked ? 'Conexão W-API Ativada' : 'Conexão W-API Desativada' })
     } catch (err: any) {
       toast({
@@ -94,6 +98,8 @@ export function WApiTab() {
         description: getErrorMessage(err),
         variant: 'destructive',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -103,25 +109,19 @@ export function WApiTab() {
       return
     }
     try {
-      let currentSettings = settings
-      if (!currentSettings) {
-        const records = await pb.collection('app_settings').getFullList()
-        if (records.length > 0) {
-          currentSettings = records[0]
-        } else {
-          currentSettings = await pb.collection('app_settings').create({
-            wapi_active: false,
-            api_key: tempData.api_key,
-            webhook_secret: tempData.webhook_secret || '',
-          })
-          setSettings(currentSettings)
-          toast({ title: 'Configurações W-API salvas com sucesso!' })
-          return
-        }
+      setIsSaving(true)
+      if (!settings?.id) {
+        throw new Error('Configurações não carregadas.')
       }
-
-      await pb.collection('app_settings').update(currentSettings.id, tempData)
-      setSettings((prev: any) => ({ ...prev, ...tempData }))
+      const updated = await pb.collection('app_settings').update(settings.id, {
+        api_key: tempData.api_key,
+        webhook_secret: tempData.webhook_secret || '',
+      })
+      setSettings(updated)
+      setTempData({
+        api_key: updated.api_key || '',
+        webhook_secret: updated.webhook_secret || '',
+      })
       toast({ title: 'Configurações W-API salvas com sucesso!' })
     } catch (err: any) {
       toast({
@@ -129,6 +129,8 @@ export function WApiTab() {
         description: getErrorMessage(err),
         variant: 'destructive',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -148,7 +150,12 @@ export function WApiTab() {
   const webhookUrl = 'https://financeflow-crm-da222.goskip.app/backend/v1/webhook/w-api'
 
   return (
-    <div className="bg-[#1c1c1c] text-zinc-100 rounded-xl p-6 border border-zinc-800 shadow-xl w-full max-w-2xl font-sans mt-2">
+    <div className="bg-[#1c1c1c] text-zinc-100 rounded-xl p-6 border border-zinc-800 shadow-xl w-full max-w-2xl font-sans mt-2 relative">
+      {isLoading && (
+        <div className="absolute inset-0 z-10 bg-[#1c1c1c]/50 flex items-center justify-center rounded-xl backdrop-blur-sm">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
       <div className="flex justify-between items-start sm:items-center mb-6 flex-col sm:flex-row gap-4">
         <div>
           <p className="text-zinc-400 text-xs mb-0.5">Status da Ponte:</p>
@@ -164,7 +171,10 @@ export function WApiTab() {
           <span className="text-[#facc15] bg-[#3a2f14] px-3 py-1 rounded-full text-xs font-semibold border border-yellow-500/10 tracking-wide">
             Instância Diamond
           </span>
-          <button className="text-zinc-400 hover:text-zinc-200 transition-colors">
+          <button
+            className="text-zinc-400 hover:text-zinc-200 transition-colors"
+            disabled={isLoading || isSaving}
+          >
             <MoreVertical className="h-5 w-5" />
           </button>
         </div>
@@ -181,6 +191,7 @@ export function WApiTab() {
               id="wapi-connection-toggle"
               checked={isActive}
               onCheckedChange={handleToggle}
+              disabled={isLoading || isSaving}
               className="data-[state=checked]:bg-green-500"
             />
             <Label
@@ -188,6 +199,7 @@ export function WApiTab() {
               className={cn(
                 'text-xs font-semibold uppercase tracking-wider cursor-pointer',
                 isActive ? 'text-green-400' : 'text-zinc-400',
+                (isLoading || isSaving) && 'opacity-50 cursor-not-allowed',
               )}
             >
               Conexão W-API
@@ -206,14 +218,16 @@ export function WApiTab() {
               type={showToken ? 'text' : 'password'}
               value={tempData.api_key}
               onChange={(e) => setTempData({ ...tempData, api_key: e.target.value })}
-              className="bg-transparent w-full text-[15px] font-medium text-zinc-100 outline-none border-none p-0 pr-20 focus:ring-0 tracking-wider"
+              disabled={isLoading || isSaving}
+              className="bg-transparent w-full text-[15px] font-medium text-zinc-100 outline-none border-none p-0 pr-20 focus:ring-0 tracking-wider disabled:opacity-50"
               placeholder="Ex: 75xqmYu..."
             />
             <div className="absolute right-0 flex items-center gap-4 text-zinc-400">
               <button
                 onClick={() => setShowToken(!showToken)}
                 type="button"
-                className="hover:text-zinc-200 transition-colors"
+                disabled={isLoading || isSaving}
+                className="hover:text-zinc-200 transition-colors disabled:opacity-50"
                 title={showToken ? 'Ocultar' : 'Mostrar'}
               >
                 {showToken ? (
@@ -225,7 +239,8 @@ export function WApiTab() {
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="hover:text-zinc-200 transition-colors"
+                disabled={isLoading || isSaving}
+                className="hover:text-zinc-200 transition-colors disabled:opacity-50"
                 title="Gerar novo token"
               >
                 <RefreshCcw className="h-[18px] w-[18px]" />
@@ -241,7 +256,8 @@ export function WApiTab() {
           <input
             value={tempData.webhook_secret}
             onChange={(e) => setTempData({ ...tempData, webhook_secret: e.target.value })}
-            className="bg-transparent w-full text-[15px] font-medium text-zinc-100 outline-none border-none p-0 focus:ring-0"
+            disabled={isLoading || isSaving}
+            className="bg-transparent w-full text-[15px] font-medium text-zinc-100 outline-none border-none p-0 focus:ring-0 disabled:opacity-50"
             placeholder="Assinatura secreta para validar payload"
           />
         </div>
@@ -262,6 +278,7 @@ export function WApiTab() {
                 navigator.clipboard.writeText(webhookUrl)
                 toast({ title: 'URL do Webhook copiada!' })
               }}
+              disabled={isLoading || isSaving}
               title="Copiar URL"
               className="h-[38px] bg-[#262626] text-zinc-300 border-zinc-700 hover:bg-[#333333] hover:text-zinc-100 px-3"
             >
@@ -279,8 +296,10 @@ export function WApiTab() {
         <div className="flex gap-3 w-full sm:w-auto">
           <Button
             onClick={handleSave}
+            disabled={isLoading || isSaving}
             className="bg-[#3b82f6] hover:bg-[#2563eb] text-white rounded-lg px-5 h-10 font-bold border-none transition-colors w-full sm:w-auto"
           >
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Salvar
           </Button>
         </div>
