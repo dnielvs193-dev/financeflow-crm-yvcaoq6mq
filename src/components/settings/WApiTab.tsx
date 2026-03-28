@@ -28,20 +28,17 @@ export function WApiTab() {
     try {
       setIsLoading(true)
       const records = await pb.collection('app_settings').getFullList()
-      let record = records.length > 0 ? records[0] : null
+      const record = records.length > 0 ? records[0] : null
 
-      if (!record) {
-        record = await pb.collection('app_settings').create({
-          wapi_active: false,
-          api_key: '',
-          instance_id: '',
-          webhook_secret: generateApiKey(),
-        })
+      if (record) {
+        setSettings(record)
+        setApiKeyInput(record.api_key || '')
+        setInstanceIdInput(record.instance_id || '')
+      } else {
+        setSettings(null)
+        setApiKeyInput('')
+        setInstanceIdInput('')
       }
-
-      setSettings(record)
-      setApiKeyInput(record.api_key || '')
-      setInstanceIdInput(record.instance_id || '')
     } catch (e: any) {
       setSettings(null)
       toast({
@@ -105,15 +102,25 @@ export function WApiTab() {
       toast({ title: 'Preencha todos os campos requeridos.', variant: 'destructive' })
       return
     }
-    if (!settings?.id) return
 
     try {
       setIsSaving(true)
-      const updated = await pb.collection('app_settings').update(settings.id, {
+      const data = {
         api_key: apiKeyInput.trim(),
         instance_id: instanceIdInput.trim(),
         wapi_active: true,
-      })
+      }
+
+      let updated
+      if (settings?.id) {
+        updated = await pb.collection('app_settings').update(settings.id, data)
+      } else {
+        updated = await pb.collection('app_settings').create({
+          ...data,
+          webhook_secret: generateApiKey(),
+        })
+      }
+
       setSettings(updated)
       toast({ title: 'Conectado à W-API com sucesso!' })
     } catch (err: any) {
@@ -205,7 +212,27 @@ export function WApiTab() {
                       variant="ghost"
                       size="icon"
                       className="h-full px-2 hover:bg-transparent text-muted-foreground hover:text-destructive"
-                      onClick={() => setApiKeyInput('')}
+                      onClick={async () => {
+                        setApiKeyInput('')
+                        if (settings?.id) {
+                          try {
+                            setIsSaving(true)
+                            const updated = await pb
+                              .collection('app_settings')
+                              .update(settings.id, { api_key: '' })
+                            setSettings(updated)
+                            toast({ title: 'API Key removida do registro.' })
+                          } catch (err: any) {
+                            toast({
+                              title: 'Erro ao limpar API Key',
+                              description: getErrorMessage(err),
+                              variant: 'destructive',
+                            })
+                          } finally {
+                            setIsSaving(false)
+                          }
+                        }
+                      }}
                       title="Limpar Token"
                     >
                       <X className="h-4 w-4" />
@@ -230,11 +257,19 @@ export function WApiTab() {
         <div className="space-y-2 pt-4 border-t border-border">
           <Label>Webhook Secret (Validação de Payload)</Label>
           <div className="flex items-center gap-2">
-            <Input readOnly value={settings?.webhook_secret || ''} className="bg-muted font-mono" />
+            <Input
+              readOnly
+              value={settings?.webhook_secret || 'Será gerado ao conectar'}
+              className={cn(
+                'bg-muted font-mono',
+                !settings?.webhook_secret && 'text-muted-foreground',
+              )}
+            />
             <Button
               type="button"
               variant="outline"
               size="icon"
+              disabled={!settings?.id || !settings?.webhook_secret}
               onClick={() => {
                 navigator.clipboard.writeText(settings?.webhook_secret || '')
                 toast({ title: 'Webhook Secret copiado!' })
@@ -247,6 +282,7 @@ export function WApiTab() {
               type="button"
               variant="outline"
               size="icon"
+              disabled={!settings?.id}
               onClick={async () => {
                 if (!settings?.id) return
                 const newSecret = generateApiKey()

@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Play } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export function SimulatorModal() {
   const { toast } = useToast()
@@ -62,7 +63,8 @@ export function SimulatorModal() {
     } catch (err: any) {
       toast({
         title: 'Erro',
-        description: err?.message || 'Falha ao disparar webhook. Verifique as configurações.',
+        description:
+          getErrorMessage(err) || 'Falha ao disparar webhook. Verifique as configurações.',
         variant: 'destructive',
       })
     }
